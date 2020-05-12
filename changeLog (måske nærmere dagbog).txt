@@ -1,0 +1,153 @@
+***/ Solver changeLog /***
+v. 0.0.0 --- (23-04-2020)
+Jeg har:
+ - startet projektet.
+ - lavet en "greeting", hvor man angiver antallet af hold i turneringen (n). 
+ 	Derefter printer den antallet ud og antallet af runder i turneringen (2*(n-1)).
+ - tilføjet globale variable 'n' og 'm', som er hhv. # hold og # runder i første halvdel.
+ - lært lidt om c++
+ 
+v. 0.0.1 --- (24-04-2020)
+ Jeg har:
+ - lavet (meget) flotte kommentarer, som indikerer hvilken fase koden tilhører.
+ - lavet flere prints som skriver hvor vi er i hele programmet
+ - fundet ud af, at matricer ikke er så smarte i c++, så matricerne bliver i stedet 1d-arrays. 
+ 	Siden n og m ikke ændrer sig (og jo er antallet af hhv. rækker og søjler), er det ikke noget problem at 
+ 	definere hvornår en ny række starter.
+ - lavet en metode: printMat(int* arr, int r, int c), som printer en matrix ordenligt.
+
+v. 0.1.0 --- (25-04-2020)
+Jeg har: (fået mere struktur på denne fil og)
+ = Greeting/setup =
+  - tilføjet binære variable, 
+ 	- doPhaseOne	som indikerer om der er behov for at køre fase 1 
+ 	- doPhaseTwo	og/eller fase 2. Disse bliver valgt i starten af programmet. 
+ = Fase 1 =
+  - tilføjet if-statement, så der kan fyldes ind, hvis fase 1 overhovedet skal køres. 
+ 	Hvis ikke, tænker jeg at bruge canonical pattern fra de Werra.
+ = Fase 2 =
+  - tilføjet if-statement, så der kan fyldes ind, hvis fase 1 overhovedet skal køres.
+  - tilføjet kode som laver en turneringsplan med cirkelalg. hvis der ikke er bibetingelser med matchups
+ = Fase 3 =
+  - erklæret matricen M3...
+ = Hjælpemetoder/refaktorering =
+  - tilføjet metoder:
+ 	- swapColumns(int *arr, int k, int l) som ombytter to søjler i en matrix
+ 	- modMod(int a, int b) som er Matsui & Miyashiro's modificerede modulo 
+ 		(gav lidt problemer, siden at modulo af en eller anden grund kan være negativt??)
+ 
+v. 0.1.1 --- (26-04-2020)
+ = Greeting/setup =
+  - Hvis doPhaseOne eller doPhaseTwo er 1, bedes brugeren om at angive en sti til en fil med constraints.
+ 	Denne bliver gemt i en string (og ikke brugt endnu...)
+ = Fase 1 =
+  - har prøvet at tilføje kode som kan lave et H/A-pattern ud fra canonical pattern metoden. (Virker ikke)
+ 	Jeg tænker, at det er bedre at integrere cplex og løse IP'et. 
+  - tilføjet metode, som laver en matrix, der beskriver hele turneringen (dim.: nx2m) i stedet for 
+ 	første halvdel (dim.: nxm) (M1_2)
+ = Fase 2 =
+  - tilføjet metode, som laver en matrix, der beskriver hele turneringen (M2_2)
+  - fandt ud af, at cirkelalg-koden ikke virker for flere end 4 hold. (og har fikset det)
+  - fandt ud af, at swapColumns ikke fungerede for større matricer og har udskiftet den med metoden 
+ 	swapRounds(int *mat, int k, int l), som bytter rundt på to søjler i første halvdel og deres "tvillingerunder" 
+ 	i anden halvdel.
+ = Fase 3 = 
+  - laver nu en matrix M3 ud fra matricerne fundet i fase 1 og 2.
+  - som test printer den M3, bytter rundt på runde 1 og 3 og printer M3 igen.
+ 
+v. 0.1.2 --- (27-04-2020)
+ = Greeting/setup = 
+  - Har tilføjet cplex directories til include-directories og add_definitions og alt muligt gøgl. 
+ 	(Det virker stadig ikke).. .. .....
+  	fandt ud af, at cplex kun kører med microsoft visual studio compiler på windows, så jeg skal nok skifte IDE...
+ 
+v. 0.1.2 --- (28-04-2020)
+  - Har skiftet til Visual Studio. Det tog lidt tid, men nu kører programmet som før og den vil gerne include cplex!
+  - Der er fejl med linkeren. Det betyder jo så også, at compileren kører fint. så. ja. (Glas halvt fyldt...)
+ = Greeting/setup =
+  - programmet sætter nu antallet af hold til n+1, hvis der bliver indtastet et ulige antal
+ = Fase 1 =
+  - Har tilføjet kode, som løser et lille cplex eksempel for at se, om det kører
+  - Har tilføjet kommentarer, som beskriver den fremgangsmåde jeg har tænkt mig at implementere.
+ 
+v. 0.1.3 --- (28-04-2020)
+  - Har fået cplex til at fungere (skal køres med x64) 
+ 	P.S. der kommer nu en masse warnings, men de stopper ikke programmet, så det går nok...
+ 
+v. 0.1.4 --- (29-04-2020)
+ = Fase 1 =
+  - Har fjernet 'test-eksemplet'
+  - Tilføjet Cplex env, model og instans (initialiseret)
+ = Hjælpemetoder/Refaktorering =
+  - Tilføjet metoden basicModelPhaseOne(), som gerne skulle bygge modellen fra fase 1 i opgaven.
+ 	Den løser ikke problemet lige nu. De bibetingelser, der skal gøre, at b ikke bare kan være 0 
+ 	hele tiden fungerer ikke, da den ikke er glad for, at man sammenligner to variable i bibetingelserne.
+  	Muligvis skal den flyttes til en anden .cpp fil eller op i main()...
+ 
+v. 0.1.5 --- (30-04-2020)
+ = Hjælpemetoder/Refaktorering =
+  - har fjernet basicModelPhaseOne() og flyttet koden op i main().
+  - printmatrix(): Har tilføjet hold, således at den printer "team i|" foran hver række og man kan se at det er en turneringsplan. 
+ 
+v. 0.1.6 --- (02-05-2020)
+  - Har byttet rundt på fase 1 og 2. Det er muligvis ikke nødvendigt alligevel. 
+  - Cplex fungerer vist som det skal. Der mangler dog en bibetingelse, som sikrer, at alle rækker er unikke. Hvis to hold har samme H/A mønster
+ 	vil de aldrig spille mod hinanden, hvilket ikke er feasible.
+ 
+v. 0.1.7 --- (02-05-2020)
+  - Bibetingelsen er tilføjet, og nu fungerer koden som jeg ville have den til. Problemet er nu, at man ikke kan løse problemet
+	på den måde, som jeg havde tænkt. (Fase 1 og 2 kan ikke løses uafhængigt af hinanden!).
+ = IP = 
+  - Har ryddet op og tilføjet kommetarer, så det ikke skærer i øjnene hver gang man ser på det.
+
+v. 0.1.8 --- (03-05-2020)
+  - Er begyndt på at lave canonical pattern. Det fungerer ikke så godt endnu.
+
+v. 0.2.0 --- (03-05-2020)
+  - Har ryddet op
+  - Har installeret Cplex fuld version, så nu kan den løse problemer med mere end 8 hold. (Dog tager store problemer længere tid end forventet)
+  - Har tilføjet udprint af køretiden for hver fase og total.
+ = Fase 2 =
+  - Har tilføjet bibetingelser, så H/A-pattern er brugbart (modstandere skal have forskellige H/A værdier)
+ 	(og dermed giver fase 1 + fase 2 en brugbar løsning!)
+  - Har fjernet canonical pattern. Fordi det ikke virker og jeg tror ikke det bliver nødvendigt.
+ = Hjælpemetoder/Refaktorering =
+  - Har tilføjet swapRows() som ombytter to rækker (duh...)
+  - Har tilføjet swapNumbers() som bytter rundt på to tal i en matrix/turneringsplan.
+ 	(e.g. alle 1-taller bliver til 2-taller og alle 2-taller bliver til 1-taller)
+  - Har tilføjet swapTeams() som ved kald af swapRows() og swapNumbers() bytter rundt på to holds turneringsplaner
+ 	(dvs. det er 'move p_2' fra afhandlingen)
+
+v. 0.2.1 --- (08-05-2020)
+ = IP/CP-fase =
+  - Har tilføjet kode som laver den kanoniske H/A-pattern (de Werra 81, canonical pattern), som kan spare en masse tid, hvis der ikke indføres 
+	problem-specifikke bibetingelser. Fordi Cplex tager lang tid.
+  - NB! OBS! Bemærk, at det er det umodificerede canonical pattern indtil videre! Dvs. det giver ikke brugbart skema for spejlet DRR endnu!!
+
+v. 0.3.0 --- (08-05-2020)
+  - Har rettet lidt i design af udskriften.
+ = IP/CP-fase = 
+  - Har rettet canonical pattern, så den laver modified canonical pattern (de Werra 81), så det giver en brugbar spejlet DRR plan.
+  - Har sat det hele op i et if-statement, så hvis der ikke er problem-specifikke bibetingelser, bruger den ikke Cplex, hvilket
+	betyder en kolossal reducering i computeringstid.
+ = Bugs = 
+ - M3 bliver ikke regnet ordenligt. I stedet for M3[i] = M1_2[i] * M2_2[i], bliver M3[i] = M2_2.
+	gælder kun når modified canonical pattern benyttes i fase 2. M1_2 og M2_2 bliver skrevet ud rigtigt, så fejlen ligger i,
+	at den ikke ganger ordenligt sammen...
+ - Modified canonical pattern giver nogle gange ikke feasible løsning for nogle n...
+	(n=8): se team 1 runde 2,3,4; (n=10): se team 9 runde 1,2,3; (n=14): se team 8 runde 11,12,13,14; 
+	
+v. 0.3.1 --- (11-05-2020)
+ = Fase 1 =
+  - Har overvejet, om det er bedre at bruge en latin-square metode til at finde en løsning?
+ = Fase 2 =
+  - Har fået den til at indlæse .txt filer som indeholder constraints. Det lader dog til, at den eneste constraint som bliver tilføjet, er (2h)
+  - Derudover, har jeg indset, at ikke alle hårde bibetingelser kan indføres i de første faser, da de løses hver for sig (lidt ligesom Schaerf)
+	og der ikke er rekursive kald.
+ = Refaktorering/hjælpemetoder =
+  - har inddelt metoderne efter hvilken fase de bliver brugt i. Det bliver rart, når der skal arbejdes på fase 1.
+
+v. 0.3.2 --- (12-05-2020)
+ = Fase 2 =
+  - Hårde constraints 1h, 2h, 4h fungerer vist, men der skal ikke mange til, før der ikke findes en brugbar løsning.
+	OBS! Siden den laver første halvdel af turneringen og spejler den, bliver 1h ikke overholdt heeeelt som den skal.
