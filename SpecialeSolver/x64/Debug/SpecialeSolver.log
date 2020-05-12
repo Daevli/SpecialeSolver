@@ -1,0 +1,21 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(467,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (SpecialeSolver.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  CplexModel.cpp
+  MasterSolver.cpp
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(197,35): warning C4244: '=': conversion from 'IloNum' to 'int', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(235,19): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  Generating Code...
+LINK : warning LNK4098: defaultlib 'MSVCRTD' conflicts with use of other libs; use /NODEFAULTLIB:library
+concert.lib(iloserror.obj) : error LNK2001: unresolved external symbol __imp__invalid_parameter
+MasterSolver.obj : error LNK2001: unresolved external symbol __imp__invalid_parameter
+concert.lib(iloenv.obj) : error LNK2001: unresolved external symbol __imp__invalid_parameter
+concert.lib(evaluator.obj) : error LNK2001: unresolved external symbol __imp__invalid_parameter
+concert.lib(ilocollectionstruct.obj) : error LNK2001: unresolved external symbol __imp__invalid_parameter
+MasterSolver.obj : error LNK2019: unresolved external symbol __imp__calloc_dbg referenced in function "char * __cdecl std::_Maklocstr<char>(char const *,char *,struct _Cvtvec const &)" (??$_Maklocstr@D@std@@YAPEADPEBDPEADAEBU_Cvtvec@@@Z)
+MasterSolver.obj : error LNK2019: unresolved external symbol __imp__CrtDbgReport referenced in function "void * __cdecl std::_Allocate_manually_vector_aligned<struct std::_Default_allocate_traits>(unsigned __int64)" (??$_Allocate_manually_vector_aligned@U_Default_allocate_traits@std@@@std@@YAPEAX_K@Z)
+concert.lib(iloenv.obj) : error LNK2019: unresolved external symbol __imp__CrtDbgReportW referenced in function "void * __cdecl std::_Allocate(unsigned __int64,unsigned __int64,bool)" (?_Allocate@std@@YAPEAX_K0_N@Z)
+concert.lib(evaluator.obj) : error LNK2001: unresolved external symbol __imp__CrtDbgReportW
+concert.lib(ilocollectionstruct.obj) : error LNK2001: unresolved external symbol __imp__CrtDbgReportW
+concert.lib(iloserror.obj) : error LNK2001: unresolved external symbol __imp__CrtDbgReportW
+msvcprtd.lib(locale0_implib.obj) : error LNK2019: unresolved external symbol __imp__free_dbg referenced in function "public: static void __cdecl std::_Fac_node::operator delete(void *)" (??3_Fac_node@std@@SAXPEAX@Z)
+msvcprtd.lib(locale0_implib.obj) : error LNK2019: unresolved external symbol __imp__malloc_dbg referenced in function "public: static void * __cdecl std::_Fac_node::operator new(unsigned __int64)" (??2_Fac_node@std@@SAPEAX_K@Z)
+C:\Users\Johan\source\repos\SpecialeSolver\x64\Debug\MasterSolver.exe : fatal error LNK1120: 6 unresolved externals
