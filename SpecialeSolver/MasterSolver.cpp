@@ -235,7 +235,6 @@ int main() {
 					constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
 					switch (constraintCode)	{
 					case 1: 
-						cout << "\nHard complementary constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " share stadium.";
 						// add constraint to the model. Note, that this ensures that the two teams do not play home at the same time IN THE FIRST HALF.
 						for (int i = 0; i < m; i++)	
 						{
@@ -243,19 +242,17 @@ int main() {
 							e1 = h[(v.operator[](1) - 1) * m + i] + h[(v.operator[](2) - 1) * m + i];
 							model.add(e1 <= 1);
 						}
+						cout << "\nHard complementary constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " share stadium.";
 						break;
 					case 2: 
 						if (v.operator[](2) == 0) { H = "away"; } else { H = "home"; } // Make string for print
 						e1.clear();
 						e1 = h[(v.operator[](1) - 1) * m + v.operator[](3) - 1];
-						if(v.operator[](3) <= m)	// If the round is in first half, add constraint
-						{
-							model.add(e1 == v.operator[](2));
-							cout << "\nfirst half " << v.operator[](2);
+						if(v.operator[](3) <= m) {	
+							model.add(e1 == v.operator[](2));	// If the round is in first half, add constraint
 						}
-						else {						// Otherwise, add opposite constraint for the first half (remember: tnmt is mirrored)
-							model.add(e1 == flipOneAndZero(v.operator[](2)));
-							cout << "\nsecond half " << flipOneAndZero(v.operator[](2));
+						else {						
+							model.add(e1 == flipOneAndZero(v.operator[](2)));	// Otherwise, add opposite constraint for the first half (remember: tnmt is mirrored)
 						}
 						cout << "\nHard availability constraint  : Team " << v.operator[](1) << " must play " << H << " in round " << v.operator[](3) << ".";
 						break;

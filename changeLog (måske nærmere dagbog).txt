@@ -302,7 +302,8 @@ v. 0.3.1 --- (11-05-2020)
   - har inddelt metoderne efter hvilken fase de bliver brugt i. Det bliver rart, når der skal arbejdes på fase 1.
 
 v. 0.3.2 --- (12-05-2020)
+  - Har lavet gitHub repo. *dyb vejrtrækning*. Det var ikke sjovt, men nu er det gjort.
  = Fase 2 =
   - Hårde constraints 1h, 2h, 4h fungerer vist, men der skal ikke mange til, før der ikke findes en brugbar løsning.
->>>>>>> d4b670cdfb77d04736f7ace3b32f9eff2e27881a
 	OBS! Siden den laver første halvdel af turneringen og spejler den, bliver 1h ikke overholdt heeeelt som den skal.
+ 
