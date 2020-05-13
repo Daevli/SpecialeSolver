@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.3.2
+// Version: 0.3.3
 // ---------------------------------
 
 #include <iostream>
@@ -24,10 +24,13 @@ ILOSTLBEGIN
 
 using namespace std;
 
+#define BLANK 0
+#define SPACE " "
+#define LINE "|"
+#define NEW_ROW "-------------------------------------"
+
 int n; // Number of teams
 int m; // Number of rounds in the first half of the tournament
-string phaseOneConstraintsPath;
-string phaseTwoConstraintsPath;
 
 int main();
 
@@ -40,38 +43,71 @@ void swapTeams(int* mat, int k, int l);
 int modMod(int a, int b);
 int flipOneAndZero(int t);
 
+void print_grid(vector<int> grid);
+bool used_in_row(vector<int> grid, int row, int num);
+bool used_in_col(vector<int> grid, int col, int num);
+bool is_safe(vector<int> grid, int row, int col, int num);
+std::pair<int, int> get_unassigned_location(vector<int> grid);
+bool solve_soduko(vector<int> grid);
+
 int main() {
 	// Greeting
-	cout << "Program Start...\n" << "How many teams? (Please make it an even number) ";
+	cout << "Program Start...\n" << "How many teams? ";
 
 	// Save number of teams, n, and number of rounds, m
 	cin >> n;
 	if (n % 2 != 0) { n++; }
 	m = n - 1;
 
-	// Dialog: Constraints? (Skip phase 1 or 2?)
-	cout << "------\n" << "Number of teams set to: " << n << "\nNumber of rounds: " << 2 * m << "\nTotal number of matches: " << n * m << "\n------\n";
-	cout << "Are there any problem-specific constraints on matchups? (1/0)\n"; bool doPhaseOne; cin >> doPhaseOne;
+	// Dialog: Any hard constraints? 
+	cout << "------\n" << "Number of teams set to: " << n 
+		 << "\nNumber of rounds: " << 2 * m << "\nTotal number of matches: " << n * m << "\n------\n";
+	cout << "Are there any hard problem-specific constraints on matchups? (1/0)\n"; bool doPhaseOne; 
+	cin >> doPhaseOne;
 	if (doPhaseOne) {
-		cout << "Then we are doing phase 1.\n" << "Please input path/name of constrains file:\n";
-		// cin >> phaseOneConstraintsPath; // Save path for constraints file
+		cout << "Reading from hard constraints file...\n";
 	}
-	else { cout << "Skipping phase 1 then...\n"; }
-	cout << "Are there any problem-specific constraints on location? (1/0)\n"; bool doPhaseTwo; cin >> doPhaseTwo;
+	else { cout << "Using circle method then...\n"; }
+	cout << "Are there any hard problem-specific constraints on location? (1/0)\n"; bool doPhaseTwo; 
+	cin >> doPhaseTwo;
 	if (doPhaseTwo) {
-		cout << "Then we are doing phase 2.\n" << "Please input path/name of constrains file:\n";
-		// cin >> phaseTwoConstraintsPath; // Save path for constraints file
+		cout << "Reading from hard constraints file...\n";
 	}
-	else { cout << "Skipping phase 2 then...\n"; }
+	else { cout << "Using modified canonical pattern then...\n"; }
 
 	auto start = chrono::steady_clock::now();
-	/*************************************************************************************************/
-	/**********************************| Phase 1: Edge coloring/CP |**********************************/
-	/**********************************/ cout << "\n\n--- Phase 1:\n";/*******************************/
+	/*****************************************************************************************************************************/
+	/************************************************| Phase 1: Edge coloring/CP |************************************************/
+	/************************************************/ cout << "\n\n--- Phase 1:\n";/*********************************************/
 	int* M1 = new int[n * m];
 
 	//if (doPhaseOne) {
-		// Edge-coloring or latin square?
+		// Edge-coloring/latin square
+	vector<int> latinSquare(n*n);
+
+	
+
+
+	if (solve_soduko(latinSquare) == true) {
+		cout << endl;
+		for (int i = 0; i < n; i++)
+		{
+			for (int j = 0; j < n; j++)
+			{
+				cout << latinSquare[i];
+			}
+			cout << endl;
+		}
+	}
+	else
+	{
+		cout << "No solution exists for the given Soduko" << endl << endl;
+	}
+
+
+
+
+
 	//}
 	//else {
 		// Use circle method (reformulated by Matsui & Miyashiro (2006))
@@ -107,14 +143,14 @@ int main() {
 	printMat(M1_2, n, 2 * m);
 
 	auto postPhaseOne = chrono::steady_clock::now();
-	/*************************************************************************************************/
-	/*****************************************| Phase 2: IP |*****************************************/
-	/*********************************/ cout << "\n\n--- Phase 2:\n";/********************************/
+	/*****************************************************************************************************************************/
+	/*******************************************************| Phase 2: IP |*******************************************************/
+	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
 	int* M2 = new int[n * m];
 
 	if (doPhaseTwo) {
 		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the IP/CP model...";
-		// Build IP/CP and solve with Cplex
+
 		// Build model
 		IloEnv env;
 
@@ -350,9 +386,9 @@ int main() {
 
 	printMat(M2_2, n, 2 * m);
 	auto postPhaseTwo = chrono::steady_clock::now();
-	/*************************************************************************************************/
-	/***********************************| Phase 3: Metaheuristics |***********************************/
-	/*********************************/ cout << "\n\n--- Phase 3:\n";/********************************/
+	/*****************************************************************************************************************************/
+	/*************************************************| Phase 3: Metaheuristics |*************************************************/
+	/***********************************************/ cout << "\n\n--- Phase 3:\n";/**********************************************/
 	int* M3 = new int[n * 2 * m];
 
 	// Create M3 by multiplying entries from the solutions found in the previous phases
@@ -384,7 +420,7 @@ int main() {
 	return 0;
 }
 
-/*******************************************| Refactoring |*******************************************/
+/*********************************************************| Refactoring |*********************************************************/
 
 /********* General *********/
 // Method for printing out an array as a matrix.
@@ -409,6 +445,166 @@ void printMat(int* arr, int r, int c) {
 }
 
 /********* Phase 1 *********/
+
+
+
+
+
+
+
+
+
+// Prints the soduko / latin square
+void print_grid(vector<int> grid)
+{
+	for (int i = 0; i < n; i++)
+	{
+		cout << SPACE << SPACE << SPACE << SPACE << endl;
+		cout << NEW_ROW << endl;
+		for (int j = 0; j < n; j++)
+		{
+			cout << SPACE;
+			if (BLANK == grid.operator[](i * n + j))
+			{
+				cout << SPACE;
+			}
+			else
+			{
+				cout << grid.operator[](i * n + j);
+			}
+			cout << SPACE;
+			cout << LINE;
+		}
+	}
+	cout << endl << NEW_ROW << endl << endl;;
+}
+
+// Returns a boolean which indicates whether any assigned entry
+// in the specified row matches the given number. 
+bool used_in_row(vector<int> grid, int row, int num)
+{
+	for (int col = 0; col < n; col++)
+		if (grid[row * n + col] == num)
+		{
+			return true;
+		}
+	return false;
+}
+
+// Returns a boolean which indicates whether any assigned entry
+// in the specified column matches the given number. 
+bool used_in_col(vector<int> grid, int col, int num)
+{
+	for (int row = 0; row < n; row++)
+		if (grid[row * n + col] == num)
+		{
+			return true;
+		}
+	return false;
+}
+
+// Returns a boolean which indicates whether it will be legal to assign
+// num to the given row,col location.
+bool is_safe(vector<int> grid, int row, int col, int num)
+{
+	// Check if 'num' is not already placed in current row,
+	// and current column
+	return !used_in_row(grid, row, num) &&
+		!used_in_col(grid, col, num);
+}
+
+// Searches the grid to find an entry that is still unassigned. If
+// found, the reference parameters row, col will be set the location
+// that is unassigned, and true is returned. If no unassigned entries
+// remain, false is returned. 
+pair<int, int> get_unassigned_location(vector<int> grid)
+{
+	for (int row = 0; row < n; row++)
+		for (int col = 0; col < n; col++)
+			if (grid[row * n + col] == BLANK)
+			{
+				cout << row << " " << col << ". ";
+				return make_pair(row, col);
+			}
+	return make_pair(n,n);
+}
+
+// Takes a partially filled-in grid and attempts to assign values to
+// all unassigned locations in such a way to meet the requirements
+// for Sudoku solution (non-duplication across rows, columns, and boxes) 
+bool solve_soduko(vector<int> grid)
+{
+	// If the Soduko grid has been filled, we are done
+	if (get_unassigned_location(grid) == make_pair(n,n))
+	{
+		return true;
+	}
+
+	// Get an unassigned Soduko grid location
+	pair<int, int> row_and_col = get_unassigned_location(grid);
+	int row = row_and_col.first;
+	int col = row_and_col.second;
+
+	// Consider digits 1 to n (colors)
+	for (int num = 1; num <= n; num++)
+	{
+		// If placing the current number in the current
+		// unassigned location is valid, go ahead
+		if (is_safe(grid, row, col, num))
+		{
+			// Make tentative assignment
+			grid[row* n + col] = num;
+			grid[col* n + row] = num;
+			for (int i = 0; i < grid.size(); i++)
+			{
+				cout << grid[i];
+			}
+			cout << endl;
+
+			// Do the same thing again recursively. If we go 
+			// through all of the recursions, and in the end 
+			// return true, then all of our number placements 
+			// on the Soduko grid are valid and we have fully
+			// solved it
+			if (solve_soduko(grid))
+			{
+				return true;
+			}
+
+			// As we were not able to validly go through all 
+			// of the recursions, we must have an invalid number
+			// placement somewhere. Lets go back and try a 
+			// different number for this particular unassigned location
+			grid[row * n + col] = BLANK;
+			grid[col * n + row] = BLANK;
+		}
+	}
+
+	// If we have gone through all possible numbers for the current unassigned
+	// location, then we probably assigned a bad number early. Lets backtrack 
+	// and try a different number for the previous unassigned locations.
+	return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /********* Phase 2 *********/
 // The modified modulo function used by Matsui & Miyashiro (2006)

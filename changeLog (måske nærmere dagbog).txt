@@ -307,3 +307,20 @@ v. 0.3.2 --- (12-05-2020)
   - Hårde constraints 1h, 2h, 4h fungerer vist, men der skal ikke mange til, før der ikke findes en brugbar løsning.
 	OBS! Siden den laver første halvdel af turneringen og spejler den, bliver 1h ikke overholdt heeeelt som den skal.
  
+v. 0.3.3 --- (13-05-2020)
+  - Mindre rettelser i dialog
+ = Fase 1 = 
+  - Har tilføjet kode som gerne skulle lave en (symmetrisk) latin square som løsning til edge-coloring subproblemet. 
+	Ved at printe ud, lader det til, at den finderen brugbar løsning, men gemmer den ikke ordenligt.
+	Det er modificeret kode fra en suduko-solver, hvor dimensionerne jo er faste, men det kan ikke bruges her.
+ = Hjælpemetoder/Refaktorering =
+  - Tilføjet diverse hjælpemetoder til løsning af latin square
+
+
+
+
+
+
+
+
+
