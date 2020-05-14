@@ -35,7 +35,7 @@ int m; // Number of rounds in the first half of the tournament
 int main();
 
 // Declare refactoring methods
-void printMat(int*, int, int);
+void printMat(long*, int, int);
 void swapRounds(int* mat, int k, int l);
 void swapRows(int* mat, int k, int l);
 void swapNumbers(int* mat, int k, int l);
@@ -79,9 +79,9 @@ int main() {
 	/*****************************************************************************************************************************/
 	/************************************************| Phase 1: Edge coloring/CP |************************************************/
 	/************************************************/ cout << "\n\n--- Phase 1:\n";/*********************************************/
-	int* M1 = new int[n * m];
+	long* M1 = new long[n * m];
 
-	//if (doPhaseOne) {
+	if (doPhaseOne) {
 		// Edge-coloring/latin square
 	vector<int> latinSquare(n*n);
 
@@ -108,8 +108,8 @@ int main() {
 
 
 
-	//}
-	//else {
+	}
+	else {
 		// Use circle method (reformulated by Matsui & Miyashiro (2006))
 		cout << "No problem-specific matchup constraints. \nUsing the circle method as formulated by Matsui & Miyashiro (2006)";
 		for (int i = 0; i < n * m; i++) {
@@ -125,11 +125,11 @@ int main() {
 				M1[i] = modMod((2 * r) - t, n - 1);
 			}
 		}
-	//}
+	}
 
 	// Extends the plan to a full DRR tournament
-	int* M1_2 = new int[n * 2 * m];
-	int* temp = new int[m];
+	long* M1_2 = new long[n * 2 * m];
+	long* temp = new long[m];
 	for (int k = 0; k < n; ++k) {
 		for (int i = 0; i < m; i++) {
 			temp[i] = M1[i + m * k];
@@ -146,7 +146,7 @@ int main() {
 	/*****************************************************************************************************************************/
 	/*******************************************************| Phase 2: IP |*******************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
-	int* M2 = new int[n * m];
+	long* M2 = new long[n * m];
 
 	if (doPhaseTwo) {
 		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the IP/CP model...";
@@ -341,7 +341,8 @@ int main() {
 	else {
 		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)";
 		// Canonical pattern (modified)
-
+		cout << 2 << endl;
+		printMat(M1_2, n, 2 * m);
 		for (int i = 0; i < m; i++) {
 			for (int k = 1; k < n - 1; k++) {
 				if (k % 2 == 0) {
@@ -363,7 +364,7 @@ int main() {
 			}
 			if (i % 2 == 0 && i > m - 4) {
 				M2[(n - 1) * m + i] = 1;
-				M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
+			//	M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
 			}
 			if (i % 2 != 0 && i > m - 4) {
 				M2[(n - 1) * m + i] = -1;
@@ -372,8 +373,13 @@ int main() {
 		}
 	}
 
+
+	cout << 3 << endl;
+	printMat(M1_2, n, 2 * m);
+
 	// Extends the plan to a full DRR tournament
-	int* M2_2 = new int[n * 2 * m];
+	long* M2_2 = new long[n * 2 * m];
+	
 	for (int k = 0; k < n; ++k) {
 		for (int i = 0; i < m; i++) {
 			temp[i] = M2[i + m * k];
@@ -383,17 +389,21 @@ int main() {
 			M2_2[j + m * (2 * k + 1)] = -temp[j];
 		}
 	}
+	cout << 4 << endl;
+	printMat(M1_2, n, 2 * m);
 
 	printMat(M2_2, n, 2 * m);
 	auto postPhaseTwo = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
 	/*************************************************| Phase 3: Metaheuristics |*************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 3:\n";/**********************************************/
-	int* M3 = new int[n * 2 * m];
+	long* M3 = new long[n * 2 * m];
 
 	// Create M3 by multiplying entries from the solutions found in the previous phases
+	printMat(M1_2, n, 2 * m);
 	for (int i = 0; i < n * 2 * m; i++) {
 		M3[i] = M1_2[i] * M2_2[i];
+		//cout << M1_2[i] << "  " << M2_2[i] << "  " << M3[i] << endl;
 	}
 	printMat(M3, n, 2 * m);
 
@@ -425,7 +435,7 @@ int main() {
 /********* General *********/
 // Method for printing out an array as a matrix.
 // Args: (Array, # of rows, # of columns)
-void printMat(int* arr, int r, int c) {
+void printMat(long* arr, int r, int c) {
 	cout << endl << endl << "round  |";
 	for (int j = 0; j < c; j++) {
 		cout << setw(4) << j + 1;

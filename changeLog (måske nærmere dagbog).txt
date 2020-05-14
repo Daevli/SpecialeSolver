@@ -316,7 +316,14 @@ v. 0.3.3 --- (13-05-2020)
  = Hjælpemetoder/Refaktorering =
   - Tilføjet diverse hjælpemetoder til løsning af latin square
 
-
+v. 0.3.4 --- (14-05-2020)
+ = Bugs =
+  - har lokaliseret buggen som gør, at M1_2 ikke er rigtig. Når der regnes canonical pattern i fase 2 (I skrivende stund linje 346-374),
+	ændrer den af en eller anden grund i M1_2 og overskriver nogle indgange med 1-taller, selvom den ikke engang bliver refereret 
+	i den kode-stump.
+	Det gælder fra n = 10 og højere.
+  	Ved at udkommentere dele, har jeg fundet, at fejlen opstår i første if-statement (I.s.s linje 348-351) mere specifikt 
+	linje 350, hvor M1 indgår...
 
 
 
