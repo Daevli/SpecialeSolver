@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.3.5
+// Version: 0.3.6
 // ---------------------------------
 
 #include <iostream>
@@ -27,6 +27,8 @@ using namespace std;
 int n; // Number of teams
 int m; // Number of rounds in the first half of the tournament
 vector<int> latinSquare;
+vector<int> fixedMatchups;
+vector<int> bannedRounds;
 
 int main();
 
@@ -82,21 +84,60 @@ int main() {
 	if (doPhaseOne) {
 	// Edge-coloring/latin square
 		latinSquare.resize(n * n);
+		bannedRounds.resize(n * n);
 
-
-	// fill the diagonal with 1's
+	// fill the diagonal with 1's and makes the algorithm ignore the diagonal.
 		for (int i = 0; i < n; i++) {
 			latinSquare[i * n + i] = 1;
+			fixedMatchups.push_back(i * n + i);
 		}
 
-		latinSquare[1] = 1;
+	// Read file 
+		string line;
+		string H;
+		int f;
+		int constraintCode;
+		int round;
+		vector<int> v;
+		ifstream myFile("hardConstraints.txt");
 
-	
-	// ------- Insert conditions here --------
+		// Problem-specific constraints
+		if (myFile.is_open()) {
+			cout << "\n\nFound constraints: ";
+			while (getline(myFile, line)) {			// Read string 
+				stringstream ss(line);				// Make stringstream from s 
+				v.clear();							// Clear vector v
+				while (ss >> f) {					// Read ints from ss into f 
+					v.push_back(f);					// Add f to vector 
+				}
+				constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
+				switch (constraintCode) {
+				case 3:
+					round = v.operator[](3) % m;	// If the specified round exceeds number of rounds, uses mod.
+					bannedRounds[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] = round + 1;	// Adds the row/col and given round to a banned list
+					bannedRounds[(v.operator[](2) - 1) * n + (v.operator[](1) - 1)] = round + 1;	
+					cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must NOT play in round " << v.operator[](3);
+					break;
+				case 5:
+					fixedMatchups.push_back((v.operator[](1) - 1) * n + (v.operator[](2) - 1));			// Adds the row/col of latinSquare to an "ignore list"
+					fixedMatchups.push_back((v.operator[](2) - 1) * n + (v.operator[](1) - 1));			// Since the matrix is symmetric.
+					latinSquare[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] = v.operator[](3);	// Sets the row/col of latinSquare to the specified round
+					latinSquare[(v.operator[](2) - 1) * n + (v.operator[](1) - 1)] = v.operator[](3);
+					cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must play in round " << v.operator[](3);
+					break;
+
+				default:
+					break;
+				}
+			}
+			myFile.close();
+		}
+		else { cout << "Error while trying to open file!"; }
+
 		
 
 		// Print the latinSquare before solving it
-		cout << "\nLatin square before solving";
+		cout << "\nLatin square before solving:\n";
 		for (int j = 0; j < n; j++) {
 			for (int i = 0; i < n; i++) {
 				cout << latinSquare[i * n + j];
@@ -477,12 +518,25 @@ bool usedInRow(vector<int> latSq, int row, int num) {
 
 // Returns a boolean which indicates whether any assigned entry
 // in the specified column matches the given number. 
-bool usedInCol(vector<int> lqtSq, int col, int num) {
+bool usedInCol(vector<int> latSq, int col, int num) {
 	for (int row = 0; row < n; row++)
-		if (lqtSq[row * n + col] == num)
+		if (latSq[row * n + col] == num)
 		{
 			return true;
 		}
+	return false;
+}
+
+bool breaksCondition(vector<int> latSq, int col, int row, int num) {
+	for (int i = 0; i < fixedMatchups.size(); i++)
+	{
+		if (row * n + col == fixedMatchups[i]) {
+			return true;
+		}
+		if (num == bannedRounds[row * n + col]) {
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -492,7 +546,8 @@ bool isSafe(vector<int> latSq, int row, int col, int num) {
 	// Check if 'num' is not already placed in current row,
 	// and current column
 	return !usedInRow(latSq, row, num) &&
-		!usedInCol(latSq, col, num);
+		!usedInCol(latSq, col, num) &&
+		!breaksCondition(latSq, row, col, num);
 }
 
 // Searches the grid to find an entry that is still unassigned. If

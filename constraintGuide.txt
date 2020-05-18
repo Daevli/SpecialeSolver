@@ -1,0 +1,148 @@
+============================
+How to add hard constraints:
+----------------------------
+Add lines of integers to the file "hardConstraints.txt". Each line represents a constraint and starts with a constraint-index
+followed by the arguments that describe the desired constraint. e.g.
+1 2 3
+means constraint index 1 with arguments 2 and 3. See below for details.
+============================
+Each type of constraint has a constraint-index:
+#1 : Hard complementary constraint, phase 1
+     -- Description:
+	"Two teams cannot play Home in the same round (probably due to shared stadium)."
+
+     -- Arguments: 
+	team1, team2
+
+     -- Example: 
+	1 6 7
+	Teams 1 and 2 cannot play home in the same round
+
+     -- Notes:
+	This will only be enforced in the first half of the tournament
+----------------------------
+#2 : Hard availability constraint, phase 1
+     -- Description:
+	"A venue might not be available due to other events, so the associated team cannot play a homegame in a given round.
+	Can also be used to force a team to play home in a given round."
+
+     -- Arguments: 
+	team, forced H or A, round
+
+     -- Example:
+	2 4 0 2
+	Team 4 must play away in round 2
+
+     -- Notes:
+	Home/Away is indicated by 1/0. 1 means the the team must play home, while 0 means that the team must play away.
+----------------------------
+#3 : Hard pairing constraint 1, phase 2
+     -- Description:
+	"These two teams must NOT play against eachother in a specific round."
+
+     -- Arguments: 
+	team1, team2, round
+
+     -- Example:
+	3 1 2 1
+	Team 1 and 2 must NOT play in round 1
+
+     -- Notes:
+	As is, it is not possible to ban multiple rounds per matchup. 
+	E.g. it is not possible to have teams 2 and 3 not play in rounds 1, 2 and 3. (Even with multiple #3 constraints)
+----------------------------
+#4 : Triple constraint, phase 1
+     -- Description:
+	"At most two of these three teams can play homegames in the same round. This could be because the stadiums are
+	close to eachother and three simultaneous home games would overload public transport or the like."
+
+     -- Arguments: 
+	team1, team2, team3
+
+     -- Example:
+	4 1 3 5
+	At most two of teams 1, 3 and 5 can play home in a round
+
+     -- Notes:
+	This hard constraint is very constrictive, so consider using the soft version.
+----------------------------
+#5 : Hard pairing constraint 2, phase 2
+     -- Description:
+	"These two teams MUST play in a specific round."
+
+     -- Arguments:
+	team1, team2, round
+
+     -- Example:
+	5 1 3 7
+	Team 1 and 3 MUST play against eachother in round 7
+
+     -- Notes:
+	
+----------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
