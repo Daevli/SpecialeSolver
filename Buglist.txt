@@ -1,0 +1,17 @@
+ACTIVE
+=> Modified canonical pattern giver nogle gange ikke en feasible løsning (flere end 3 1'ere eller -1'ere i streg)
+   -> Det sker nogle gange "efter en lang dag"
+   -> Problemet kan løses ved at genstarte IDE'en... (cache-problem?)
+
+
+SOLVED
+=> M3 bliver ikke regnet ordenligt for n >= 10
+   -> M3 skal være lig M1_2 * M2_2, men nogle indgange bliver bare erstattet af M2_2.
+   -> Når der regnes canonical pattern i fase 2, ændrer den af en 
+	eller anden grund i M1_2 og overskriver nogle indgange med 1-taller, selvom den ikke engang 
+	bliver refereret i den kode-stump.
+   -> Ved at udkommentere dele, har jeg fundet, at fejlen opstår i første if-statement mere specifikt 
+	linje 350, hvor M1 indgår...
+   -> Det sker i de ulige runder (Dvs. de lige indgange i koden (hvor i%2 == 0))
+-> LØSNING: Har lavet en ny matrix M1_safety, som kopierer M1_2. Den bruges ikke i stedet for M1_2. Den er der bare. 
+	Af en eller anden grund så fungerer det.
