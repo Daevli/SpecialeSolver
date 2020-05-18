@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.3.3
+// Version: 0.3.5
 // ---------------------------------
 
 #include <iostream>
@@ -24,37 +24,35 @@ ILOSTLBEGIN
 
 using namespace std;
 
-#define BLANK 0
-#define SPACE " "
-#define LINE "|"
-#define NEW_ROW "-------------------------------------"
-
 int n; // Number of teams
 int m; // Number of rounds in the first half of the tournament
+vector<int> latinSquare;
 
 int main();
 
 // Declare refactoring methods
-void printMat(long*, int, int);
-void swapRounds(int* mat, int k, int l);
-void swapRows(int* mat, int k, int l);
-void swapNumbers(int* mat, int k, int l);
-void swapTeams(int* mat, int k, int l);
+void printMat(vector<long>, int, int);
+void swapRounds(vector<long> mat, int k, int l);
+void swapRows(vector<long> mat, int k, int l);
+void swapNumbers(vector<long> mat, int k, int l);
+void swapTeams(vector<long> mat, int k, int l);
+
 int modMod(int a, int b);
 int flipOneAndZero(int t);
 
-void print_grid(vector<int> grid);
-bool used_in_row(vector<int> grid, int row, int num);
-bool used_in_col(vector<int> grid, int col, int num);
-bool is_safe(vector<int> grid, int row, int col, int num);
-std::pair<int, int> get_unassigned_location(vector<int> grid);
-bool solve_soduko(vector<int> grid);
+bool usedInRow(vector<int> latSq, int row, int num);
+bool usedInCol(vector<int> latSq, int col, int num);
+bool isSafe(vector<int> latSq, int row, int col, int num);
+bool solveLatinSquare(vector<int> latSq);
+
+pair<int, int> getUnassignedLocation(vector<int> latSq);
 
 int main() {
 	// Greeting
 	cout << "Program Start...\n" << "How many teams? ";
 
 	// Save number of teams, n, and number of rounds, m
+	// Add a dummy team to n, if the number given is odd
 	cin >> n;
 	if (n % 2 != 0) { n++; }
 	m = n - 1;
@@ -77,36 +75,48 @@ int main() {
 
 	auto start = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
-	/************************************************| Phase 1: Edge coloring/CP |************************************************/
-	/************************************************/ cout << "\n\n--- Phase 1:\n";/*********************************************/
-	long* M1 = new long[n * m];
+	/*******************************************| Phase 1: Edge-coloring/Latin Square |*******************************************/
+	/**********************************************/ cout << "\n\n--- Phase 1:\n";/***********************************************/
+	vector<long> M1(n * m);
 
 	if (doPhaseOne) {
-		// Edge-coloring/latin square
-	vector<int> latinSquare(n*n);
+	// Edge-coloring/latin square
+		latinSquare.resize(n * n);
+
+
+	// fill the diagonal with 1's
+		for (int i = 0; i < n; i++) {
+			latinSquare[i * n + i] = 1;
+		}
+
+		latinSquare[1] = 1;
 
 	
+	// ------- Insert conditions here --------
+		
 
-
-	if (solve_soduko(latinSquare) == true) {
-		cout << endl;
-		for (int i = 0; i < n; i++)
-		{
-			for (int j = 0; j < n; j++)
-			{
-				cout << latinSquare[i];
+		// Print the latinSquare before solving it
+		cout << "\nLatin square before solving";
+		for (int j = 0; j < n; j++) {
+			for (int i = 0; i < n; i++) {
+				cout << latinSquare[i * n + j];
 			}
 			cout << endl;
 		}
-	}
-	else
-	{
-		cout << "No solution exists for the given Soduko" << endl << endl;
-	}
 
-
-
-
+		if (solveLatinSquare(latinSquare) == true) {
+			// Print latinSquare after a successful solve...
+			cout << endl;
+			for (int j = 0; j < n; j++) {
+				for (int i = 0; i < n; i++) {
+					cout << latinSquare[i * n + j];
+				}
+			cout << endl;
+			}
+		}
+		else {
+			cout << "No solution exists!" << endl << endl;
+		}
 
 	}
 	else {
@@ -128,8 +138,8 @@ int main() {
 	}
 
 	// Extends the plan to a full DRR tournament
-	long* M1_2 = new long[n * 2 * m];
-	long* temp = new long[m];
+	vector<long> M1_2(n * 2 * m);
+	vector<long> temp (m);
 	for (int k = 0; k < n; ++k) {
 		for (int i = 0; i < m; i++) {
 			temp[i] = M1[i + m * k];
@@ -140,16 +150,21 @@ int main() {
 		}
 	}
 
+	cout << "\nM1_2 post phase 1:";
 	printMat(M1_2, n, 2 * m);
+
+	// For some reason, this solves a bug concerning the construction of M3 in phase 3
+	vector<long> M1_safety(n * 2 * m);
+	M1_safety = M1_2;
 
 	auto postPhaseOne = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
-	/*******************************************************| Phase 2: IP |*******************************************************/
+	/*******************************************************| Phase 2: CP |*******************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
-	long* M2 = new long[n * m];
+	vector<long> M2 (n * m);
 
 	if (doPhaseTwo) {
-		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the IP/CP model...";
+		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
 
 		// Build model
 		IloEnv env;
@@ -312,7 +327,7 @@ int main() {
 			// Extract model and set parameters for the solve
 			cplex.extract(model);
 			cplex.setOut(env.getNullStream()); // <-- Gets rid of cplex output
-			// cplex.setParam(IloCplex::Param::MIP::Limits::Solutions, 1); // <-- Only need one solution
+			cplex.setParam(IloCplex::Param::MIP::Limits::Solutions, 1); // <-- Only need one solution
 
 			// Solve the model
 			cplex.solve();
@@ -341,8 +356,6 @@ int main() {
 	else {
 		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)";
 		// Canonical pattern (modified)
-		cout << 2 << endl;
-		printMat(M1_2, n, 2 * m);
 		for (int i = 0; i < m; i++) {
 			for (int k = 1; k < n - 1; k++) {
 				if (k % 2 == 0) {
@@ -364,7 +377,7 @@ int main() {
 			}
 			if (i % 2 == 0 && i > m - 4) {
 				M2[(n - 1) * m + i] = 1;
-			//	M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
+			  	M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1; 
 			}
 			if (i % 2 != 0 && i > m - 4) {
 				M2[(n - 1) * m + i] = -1;
@@ -374,11 +387,9 @@ int main() {
 	}
 
 
-	cout << 3 << endl;
-	printMat(M1_2, n, 2 * m);
 
 	// Extends the plan to a full DRR tournament
-	long* M2_2 = new long[n * 2 * m];
+	vector<long> M2_2 (n * 2 * m);
 	
 	for (int k = 0; k < n; ++k) {
 		for (int i = 0; i < m; i++) {
@@ -389,18 +400,16 @@ int main() {
 			M2_2[j + m * (2 * k + 1)] = -temp[j];
 		}
 	}
-	cout << 4 << endl;
-	printMat(M1_2, n, 2 * m);
 
+	cout << "\nM2_2 post phase 2:";
 	printMat(M2_2, n, 2 * m);
 	auto postPhaseTwo = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
 	/*************************************************| Phase 3: Metaheuristics |*************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 3:\n";/**********************************************/
-	long* M3 = new long[n * 2 * m];
+	vector<long> M3 (n * 2 * m);
 
 	// Create M3 by multiplying entries from the solutions found in the previous phases
-	printMat(M1_2, n, 2 * m);
 	for (int i = 0; i < n * 2 * m; i++) {
 		M3[i] = M1_2[i] * M2_2[i];
 		//cout << M1_2[i] << "  " << M2_2[i] << "  " << M3[i] << endl;
@@ -435,7 +444,7 @@ int main() {
 /********* General *********/
 // Method for printing out an array as a matrix.
 // Args: (Array, # of rows, # of columns)
-void printMat(long* arr, int r, int c) {
+void printMat(vector<long> arr, int r, int c) {
 	cout << endl << endl << "round  |";
 	for (int j = 0; j < c; j++) {
 		cout << setw(4) << j + 1;
@@ -455,46 +464,11 @@ void printMat(long* arr, int r, int c) {
 }
 
 /********* Phase 1 *********/
-
-
-
-
-
-
-
-
-
-// Prints the soduko / latin square
-void print_grid(vector<int> grid)
-{
-	for (int i = 0; i < n; i++)
-	{
-		cout << SPACE << SPACE << SPACE << SPACE << endl;
-		cout << NEW_ROW << endl;
-		for (int j = 0; j < n; j++)
-		{
-			cout << SPACE;
-			if (BLANK == grid.operator[](i * n + j))
-			{
-				cout << SPACE;
-			}
-			else
-			{
-				cout << grid.operator[](i * n + j);
-			}
-			cout << SPACE;
-			cout << LINE;
-		}
-	}
-	cout << endl << NEW_ROW << endl << endl;;
-}
-
 // Returns a boolean which indicates whether any assigned entry
 // in the specified row matches the given number. 
-bool used_in_row(vector<int> grid, int row, int num)
-{
+bool usedInRow(vector<int> latSq, int row, int num) {
 	for (int col = 0; col < n; col++)
-		if (grid[row * n + col] == num)
+		if (latSq[row * n + col] == num)
 		{
 			return true;
 		}
@@ -503,10 +477,9 @@ bool used_in_row(vector<int> grid, int row, int num)
 
 // Returns a boolean which indicates whether any assigned entry
 // in the specified column matches the given number. 
-bool used_in_col(vector<int> grid, int col, int num)
-{
+bool usedInCol(vector<int> lqtSq, int col, int num) {
 	for (int row = 0; row < n; row++)
-		if (grid[row * n + col] == num)
+		if (lqtSq[row * n + col] == num)
 		{
 			return true;
 		}
@@ -515,25 +488,22 @@ bool used_in_col(vector<int> grid, int col, int num)
 
 // Returns a boolean which indicates whether it will be legal to assign
 // num to the given row,col location.
-bool is_safe(vector<int> grid, int row, int col, int num)
-{
+bool isSafe(vector<int> latSq, int row, int col, int num) {
 	// Check if 'num' is not already placed in current row,
 	// and current column
-	return !used_in_row(grid, row, num) &&
-		!used_in_col(grid, col, num);
+	return !usedInRow(latSq, row, num) &&
+		!usedInCol(latSq, col, num);
 }
 
 // Searches the grid to find an entry that is still unassigned. If
 // found, the reference parameters row, col will be set the location
 // that is unassigned, and true is returned. If no unassigned entries
 // remain, false is returned. 
-pair<int, int> get_unassigned_location(vector<int> grid)
-{
+pair<int, int> getUnassignedLocation(vector<int> latSq) {
 	for (int row = 0; row < n; row++)
 		for (int col = 0; col < n; col++)
-			if (grid[row * n + col] == BLANK)
+			if (latSq[row * n + col] == 0)
 			{
-				cout << row << " " << col << ". ";
 				return make_pair(row, col);
 			}
 	return make_pair(n,n);
@@ -541,42 +511,48 @@ pair<int, int> get_unassigned_location(vector<int> grid)
 
 // Takes a partially filled-in grid and attempts to assign values to
 // all unassigned locations in such a way to meet the requirements
-// for Sudoku solution (non-duplication across rows, columns, and boxes) 
-bool solve_soduko(vector<int> grid)
-{
-	// If the Soduko grid has been filled, we are done
-	if (get_unassigned_location(grid) == make_pair(n,n))
+// for a latin square (no duplicates in rows and columns)
+bool solveLatinSquare(vector<int> latSq) {
+	// If the grid has been filled, we are done
+	if (getUnassignedLocation(latSq) == make_pair(n,n))
 	{
+		cout << "\nLatin square found!\n";
+		latinSquare = latSq;
 		return true;
 	}
 
-	// Get an unassigned Soduko grid location
-	pair<int, int> row_and_col = get_unassigned_location(grid);
-	int row = row_and_col.first;
-	int col = row_and_col.second;
+	// Get an unassigned grid location
+	pair<int, int> rowAndCol = getUnassignedLocation(latSq);
+	int row = rowAndCol.first;
+	int col = rowAndCol.second;
 
-	// Consider digits 1 to n (colors)
+	// Consider digits 1 to n (colors/rounds)
 	for (int num = 1; num <= n; num++)
 	{
 		// If placing the current number in the current
 		// unassigned location is valid, go ahead
-		if (is_safe(grid, row, col, num))
+		if (isSafe(latSq, row, col, num))
 		{
 			// Make tentative assignment
-			grid[row* n + col] = num;
-			grid[col* n + row] = num;
-			for (int i = 0; i < grid.size(); i++)
-			{
-				cout << grid[i];
-			}
+			latSq[row* n + col] = num;
+			latSq[col* n + row] = num;
+
+			/*
+			// Prints out the solution so far (temporary)
 			cout << endl;
+			for (int j = 0; j < n; j++) {
+				for (int i = 0; i < n; i++) {
+					cout << latSq[i * n + j];
+				}
+				cout << endl;
+			}
+			*/
 
 			// Do the same thing again recursively. If we go 
 			// through all of the recursions, and in the end 
 			// return true, then all of our number placements 
-			// on the Soduko grid are valid and we have fully
-			// solved it
-			if (solve_soduko(grid))
+			// are valid and we are done
+			if (solveLatinSquare(latSq))
 			{
 				return true;
 			}
@@ -585,36 +561,16 @@ bool solve_soduko(vector<int> grid)
 			// of the recursions, we must have an invalid number
 			// placement somewhere. Lets go back and try a 
 			// different number for this particular unassigned location
-			grid[row * n + col] = BLANK;
-			grid[col * n + row] = BLANK;
+			latSq[row * n + col] = 0;
+			latSq[col * n + row] = 0;
 		}
 	}
 
 	// If we have gone through all possible numbers for the current unassigned
-	// location, then we probably assigned a bad number early. Lets backtrack 
+	// location, then we probably assigned a bad number early. So backtrack 
 	// and try a different number for the previous unassigned locations.
 	return false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /********* Phase 2 *********/
 // The modified modulo function used by Matsui & Miyashiro (2006)
@@ -646,9 +602,9 @@ int flipOneAndZero(int t) {
 /********* Phase 3 *********/
 // Method for swapping two rounds in a full tournament plan (move p_1)
 // Args: (Matrix, 1st round, 2nd round) - note: uses actual round number (e.g. there is no round 0)
-void swapRounds(int* mat, int k, int l) {
+void swapRounds(vector<long> mat, int k, int l) {
 	for (int i = 0; i < 2 * n; i++) {
-		int temp = mat[i * m + k - 1];
+		long temp = mat[i * m + k - 1];
 		mat[i * m + k - 1] = mat[i * m + l - 1];
 		mat[i * m + l - 1] = temp;
 	}
@@ -656,9 +612,9 @@ void swapRounds(int* mat, int k, int l) {
 
 // Method for swapping two rows in a full tournament plan
 // Args: (Matrix, 1st row, 2nd row)
-void swapRows(int* mat, int k, int l) {
+void swapRows(vector<long> mat, int k, int l) {
 	for (int i = 0; i < 2 * m; i++) {
-		int temp = mat[i + k * 2 * m];
+		long temp = mat[i + k * 2 * m];
 		mat[i + k * 2 * m] = mat[i + l * 2 * m];
 		mat[i + l * 2 * m] = temp;
 	}
@@ -666,7 +622,7 @@ void swapRows(int* mat, int k, int l) {
 
 // Method for swapping all entries in a matrix containing k with l.
 // Args: (Matrix, 1st int, 2nd int)
-void swapNumbers(int* mat, int k, int l) {
+void swapNumbers(vector<long> mat, int k, int l) {
 	for (int i = 0; i < 2 * n * m; i++) {
 		if (mat[i] == k) {
 			mat[i] = l;
@@ -685,7 +641,7 @@ void swapNumbers(int* mat, int k, int l) {
 
 // Method for swapping the schedules of two teams (move p_2)
 // Args: (Tournament plan, team 1, team 2) - note: uses actual team number (e.g. there is no team 0)
-void swapTeams(int* mat, int k, int l) {
+void swapTeams(vector<long> mat, int k, int l) {
 	swapRows(mat, k - 1, l - 1);
 	swapNumbers(mat, k, l);
 }

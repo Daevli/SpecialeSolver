@@ -325,7 +325,18 @@ v. 0.3.4 --- (14-05-2020)
   	Ved at udkommentere dele, har jeg fundet, at fejlen opstår i første if-statement (I.s.s linje 348-351) mere specifikt 
 	linje 350, hvor M1 indgår...
 
-
+v. 0.3.5 --- (18-05-2020)
+  - Har lavet en bugList, så de bugs, som jeg ikke løser med det samme ikke bliver tabt her.
+  - Har konverteret alle matricer til vector<long>. Det hjalp ikke på problemet med, at den ikke laver M3 ordenligt for større matricer. 
+	Men det skader ikke, så jeg beholder vektor-formatet.
+  - Debugging
+ = Fase 1 =
+  - Latin square metoden virker nu og finder en symmetrisk matrix, med 1-taller i diagonalen.
+    	PROBLEM: Hvis der ikke findes en brugbar løsning til de givne hårde bibetingelser, går den tilbage og laver dem om. 
+	Den burde nok skrive, at der ikke findes en brugbar løsning i stedet...
+ 
+ = Hjælpemetoder/Refaktorering =
+  - Har fjernet print_grid(), da den ikke blev brugt.
 
 
 

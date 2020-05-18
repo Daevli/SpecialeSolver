@@ -1,11 +1,15 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(467,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (SpecialeSolver.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   MasterSolver.cpp
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(116,10): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(324,19): warning C4244: '=': conversion from 'IloNum' to 'long', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(126,10): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(338,19): warning C4244: '=': conversion from 'IloNum' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=long
+          ]
   Generating code
-  2 of 330 functions ( 0.6%) were compiled, the rest were copied from previous compilation.
-    1 functions were new in current compilation
-    13 functions had inline decision re-evaluated but remain unchanged
+  0 of 392 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
 concert.lib(ilosstructi.obj) : warning LNK4099: PDB 'concert.pdb' was not found with 'concert.lib(ilosstructi.obj)' or at 'C:\Users\Johan\source\repos\SpecialeSolver\x64\Release\concert.pdb'; linking object as if no debug info
 concert.lib(ilohash.obj) : warning LNK4099: PDB 'concert.pdb' was not found with 'concert.lib(ilohash.obj)' or at 'C:\Users\Johan\source\repos\SpecialeSolver\x64\Release\concert.pdb'; linking object as if no debug info
