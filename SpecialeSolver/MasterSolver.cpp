@@ -19,7 +19,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <time.h>
-
+#include <Windows.h>
 ILOSTLBEGIN
 
 using namespace std;
@@ -80,6 +80,7 @@ int main() {
 	/*******************************************| Phase 1: Edge-coloring/Latin Square |*******************************************/
 	/**********************************************/ cout << "\n\n--- Phase 1:\n";/***********************************************/
 	vector<long> M1(n * m);
+	M1.resize(n * m);
 
 	if (doPhaseOne) {
 	// Edge-coloring/latin square
@@ -137,26 +138,42 @@ int main() {
 		
 
 		// Print the latinSquare before solving it
-		cout << "\nLatin square before solving:\n";
+		cout << "\n\nLatin square before solving:\n";
 		for (int j = 0; j < n; j++) {
 			for (int i = 0; i < n; i++) {
-				cout << latinSquare[i * n + j];
+				cout << setw(3) << latinSquare[i * n + j];
 			}
-			cout << endl;
+			cout << "\n";
 		}
+		cout << "\n";
 
 		if (solveLatinSquare(latinSquare) == true) {
 			// Print latinSquare after a successful solve...
-			cout << endl;
+			cout << "\n";
 			for (int j = 0; j < n; j++) {
 				for (int i = 0; i < n; i++) {
-					cout << latinSquare[i * n + j];
+					cout << setw(3) << latinSquare[i * n + j];
 				}
-			cout << endl;
+			cout << "\n";
 			}
+
+			// Convert latin square to tournament
+			int row;
+			int col;
+			for (int i = 0; i < latinSquare.size(); i++)
+			{
+				latinSquare[i]--;
+				if (latinSquare[i] != 0) {
+					row = floor(i / n);
+					col = latinSquare[i]-1;
+					M1[row * m + col] = i % n + 1;
+				}
+			}
+			cout << "\nM1:";
+			printMat(M1, n, m);
 		}
 		else {
-			cout << "No solution exists!" << endl << endl;
+			cout << "No solution exists!" << "\n" << "\n";
 		}
 
 	}
@@ -180,6 +197,7 @@ int main() {
 
 	// Extends the plan to a full DRR tournament
 	vector<long> M1_2(n * 2 * m);
+	M1_2.resize(n * 2 * m);
 	vector<long> temp (m);
 	for (int k = 0; k < n; ++k) {
 		for (int i = 0; i < m; i++) {
@@ -195,15 +213,19 @@ int main() {
 	printMat(M1_2, n, 2 * m);
 
 	// For some reason, this solves a bug concerning the construction of M3 in phase 3
+	
 	vector<long> M1_safety(n * 2 * m);
 	M1_safety = M1_2;
+		
 
 	auto postPhaseOne = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
 	/*******************************************************| Phase 2: CP |*******************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
 	vector<long> M2 (n * m);
+	M2.resize(n* m);
 
+	
 	if (doPhaseTwo) {
 		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
 
@@ -364,14 +386,14 @@ int main() {
 				myFile.close();
 			}
 			else { cout << "Error while trying to open file!"; }
-
+			cout << "\n---\n";
 			// Extract model and set parameters for the solve
 			cplex.extract(model);
-			cplex.setOut(env.getNullStream()); // <-- Gets rid of cplex output
+			// cplex.setOut(env.getNullStream()); // <-- Gets rid of cplex output
 			cplex.setParam(IloCplex::Param::MIP::Limits::Solutions, 1); // <-- Only need one solution
-
 			// Solve the model
 			cplex.solve();
+
 
 			// Save H/A pattern (Solution) to the array M2
 			IloNumArray vals(env);
@@ -386,16 +408,16 @@ int main() {
 			if (cplex.solve()) {
 				cout << "\n\nSolved cplex model Zuccezzfully!";
 				// double OBJval = (double)cplex.getObjValue(); // <-- Get obj val
-				// cout << "\nNumber of breaks: " << OBJval << endl;
+				// cout << "\nNumber of breaks: " << OBJval << "\n";
 			}
 		}
 		// end try
-		catch (IloException& e) { cerr << "\nConcert exception caught: " << e << endl; }
-		catch (...) { cerr << "\nUnknown exception caught" << endl; }
+		catch (IloException& e) { cerr << "\nConcert exception caught: " << e << "\n"; }
+		catch (...) { cerr << "\nUnknown exception caught" << "\n"; }
 		env.end();
 	}
 	else {
-		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)";
+		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)\n";
 		// Canonical pattern (modified)
 		for (int i = 0; i < m; i++) {
 			for (int k = 1; k < n - 1; k++) {
@@ -426,12 +448,13 @@ int main() {
 			}
 		}
 	}
-
-
+	cout << "\nM2:";
+	printMat(M2, n, m);
 
 	// Extends the plan to a full DRR tournament
 	vector<long> M2_2 (n * 2 * m);
-	
+	M2_2.resize(n * 2 * m);
+
 	for (int k = 0; k < n; ++k) {
 		for (int i = 0; i < m; i++) {
 			temp[i] = M2[i + m * k];
@@ -449,15 +472,16 @@ int main() {
 	/*************************************************| Phase 3: Metaheuristics |*************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 3:\n";/**********************************************/
 	vector<long> M3 (n * 2 * m);
+	M3.resize(n * 2 * m);
 
 	// Create M3 by multiplying entries from the solutions found in the previous phases
 	for (int i = 0; i < n * 2 * m; i++) {
 		M3[i] = M1_2[i] * M2_2[i];
-		//cout << M1_2[i] << "  " << M2_2[i] << "  " << M3[i] << endl;
+		//cout << M1_2[i] << "  " << M2_2[i] << "  " << M3[i] << "\n";
 	}
 	printMat(M3, n, 2 * m);
 
-
+	//printMat(M1_safety, n, 2 * m);
 
 
 
@@ -471,11 +495,11 @@ int main() {
 	// Print elapsed time
 	auto end = chrono::steady_clock::now();
 	cout << "\n\nElapsed time: "
-		<< endl << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count() << " ms"
-		<< endl << "Phase 2: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseTwo - postPhaseOne).count() << " ms"
-		<< endl << "Phase 3: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - postPhaseTwo).count() << " ms\n---"
-		<< endl << "Total  : " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms"
-		<< endl << "------------------------";
+		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count()-700 << " ms"
+		<< "\n" << "Phase 2: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseTwo - postPhaseOne).count() << " ms"
+		<< "\n" << "Phase 3: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - postPhaseTwo).count() << " ms\n---"
+		<< "\n" << "Total  : " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - start).count()-700 << " ms"
+		<< "\n" << "------------------------";
 
 	return 0;
 }
@@ -486,7 +510,7 @@ int main() {
 // Method for printing out an array as a matrix.
 // Args: (Array, # of rows, # of columns)
 void printMat(vector<long> arr, int r, int c) {
-	cout << endl << endl << "round  |";
+	cout << "\n" << "\n" << "round  |";
 	for (int j = 0; j < c; j++) {
 		cout << setw(4) << j + 1;
 	}
@@ -500,7 +524,7 @@ void printMat(vector<long> arr, int r, int c) {
 		for (int j = 0; j < c; j++) {
 			cout << setw(3) << arr[i * c + j] << ' ';
 		}
-		cout << endl;
+		cout << "\n";
 	}
 }
 
@@ -527,7 +551,9 @@ bool usedInCol(vector<int> latSq, int col, int num) {
 	return false;
 }
 
-bool breaksCondition(vector<int> latSq, int col, int row, int num) {
+// Returns a boolean which indicates whether the given number breaks a constraint
+// either by trying to change a fixed number or assigning a number that is not allowed
+bool breaksConstraint(vector<int> latSq, int col, int row, int num) {
 	for (int i = 0; i < fixedMatchups.size(); i++)
 	{
 		if (row * n + col == fixedMatchups[i]) {
@@ -547,7 +573,7 @@ bool isSafe(vector<int> latSq, int row, int col, int num) {
 	// and current column
 	return !usedInRow(latSq, row, num) &&
 		!usedInCol(latSq, col, num) &&
-		!breaksCondition(latSq, row, col, num);
+		!breaksConstraint(latSq, row, col, num);
 }
 
 // Searches the grid to find an entry that is still unassigned. If
@@ -566,12 +592,14 @@ pair<int, int> getUnassignedLocation(vector<int> latSq) {
 
 // Takes a partially filled-in grid and attempts to assign values to
 // all unassigned locations in such a way to meet the requirements
-// for a latin square (no duplicates in rows and columns)
+// for a latin square (no duplicates in rows and columns) as well as
+// the problem-specific hard constraints
 bool solveLatinSquare(vector<int> latSq) {
-	// If the grid has been filled, we are done
+	// Stops if the grid has been filled
 	if (getUnassignedLocation(latSq) == make_pair(n,n))
 	{
-		cout << "\nLatin square found!\n";
+		cout << " Latin square found!\n";
+		Sleep(700);
 		latinSquare = latSq;
 		return true;
 	}
@@ -592,16 +620,9 @@ bool solveLatinSquare(vector<int> latSq) {
 			latSq[row* n + col] = num;
 			latSq[col* n + row] = num;
 
-			/*
-			// Prints out the solution so far (temporary)
-			cout << endl;
-			for (int j = 0; j < n; j++) {
-				for (int i = 0; i < n; i++) {
-					cout << latSq[i * n + j];
-				}
-				cout << endl;
-			}
-			*/
+
+			std::cout << "\rProgress: " << setw(3) << row * n + col << " out of " << setw(3) << latSq.size() << ". Clicking in console will cancel!...";
+			std::cout.flush();
 
 			// Do the same thing again recursively. If we go 
 			// through all of the recursions, and in the end 

@@ -3,6 +3,11 @@ ACTIVE
    -> Det sker nogle gange "efter en lang dag"
    -> Problemet kan løses ved at genstarte IDE'en... (cache-problem?)
 
+=> Når latin square bruges, kan canonical pattern ikke regne rigtigt. 
+   -> Der er nogle indgange der bliver til 0.
+   -> Der er flere 1'ere og -1'ere i streg, end det er tilladt.
+   -> Hvis der køres Cplex, fungerer det fint.
+
 
 SOLVED
 => M3 bliver ikke regnet ordenligt for n >= 10

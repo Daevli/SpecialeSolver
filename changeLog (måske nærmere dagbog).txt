@@ -314,7 +314,7 @@ v. 0.3.3 --- (13-05-2020)
 	Ved at printe ud, lader det til, at den finderen brugbar løsning, men gemmer den ikke ordenligt.
 	Det er modificeret kode fra en suduko-solver, hvor dimensionerne jo er faste, men det kan ikke bruges her.
  = Hjælpemetoder/Refaktorering =
-  - Tilføjet diverse hjælpemetoder til løsning af latin square
+  - Tilføjet diverse hjælpemetoder til løsning af (symmetrisk) latin square: usedInRow(), usedInCol(), isSafe(), getUnassignedLocation(), solveLatinSquare()
 
 v. 0.3.4 --- (14-05-2020)
  = Bugs =
@@ -332,13 +332,13 @@ v. 0.3.5 --- (18-05-2020)
   - Debugging
  = Fase 1 =
   - Latin square metoden virker nu og finder en symmetrisk matrix, med 1-taller i diagonalen.
-    	PROBLEM: Hvis der ikke findes en brugbar løsning til de givne hårde bibetingelser, går den tilbage og laver dem om. 
-	Den burde nok skrive, at der ikke findes en brugbar løsning i stedet...
- 
+  - Har tilføjet (nogle) hårde bibetingelser til latin square.
  = Hjælpemetoder/Refaktorering =
   - Har fjernet print_grid(), da den ikke blev brugt.
+  - Har tilføjet en boolean til isSafe(), breaksConstraint, som er true, hvis anbringelsen af nummeret bryder en bibetingelse...
 
-
-
-
+v. 0.3.6 --- (20-05-2020)
+ = Fase 1 =
+  - Har lavet kode til at konvertere latinSquare til turneringsplan. Det virker, men canonical pattern virker nu ikke. (Se bugList.txt)
+  - Har tilføjet progress. Den printer nu ud hvor langt den er i løsningsprocessen.
 
