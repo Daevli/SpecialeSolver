@@ -342,3 +342,41 @@ v. 0.3.6 --- (20-05-2020)
   - Har lavet kode til at konvertere latinSquare til turneringsplan. Det virker, men canonical pattern virker nu ikke. (Se bugList.txt)
   - Har tilføjet progress. Den printer nu ud hvor langt den er i løsningsprocessen.
 
+v. 0.4.1 --- (20-05-2020)
+  - Har tilføjet flere kommentarer/doc
+  - Ny bug: Random pattern genererende kode giver nogle gange 3 1'ere i streg (se bugList)
+ = Fase 1 =
+  - Har ændret i "progress baren", så den hver 231000-ish iterationer (~ 1 sek) printer ud hvor mange iterationer den har kørt og
+	hvilken indgang den kigger på. Siden den skal printe 231000 gange mindre ud, tænker jeg, at det hjælper på beregningstiden...
+	(+ at man rent faktisk kan læse hvad den skriver ud)
+ = Fase 2 =
+  - Har tilføjet kode som laver et random pattern, siden canonical pattern ikke fungerer.
+	Siden den fylder ind som en vektor, tager den ikke højde for antallet af breaks gerne må være mere end 2 når den skifter linje. 
+	F.eks. udelukker det løsninger hvor hold 1 har udekampe i de sidste to runder og hold 2 har udekamp i den første runde.
+	Dog tænker jeg ikke det gør så meget, siden der jo ikke er nogen bibetingelser og dermed ønsker til hvem der spiller hvor hvornår.
+  - Den random kode tager ikke højde for overgangen mellem de to halvdele af turneringen
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

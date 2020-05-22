@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.3.6
+// Version: 0.3.7
 // ---------------------------------
 
 #include <iostream>
@@ -19,16 +19,17 @@
 #include <vector>
 #include <stdlib.h>
 #include <time.h>
-#include <Windows.h>
+#include <windows.h>
+#include <mmsystem.h>
 ILOSTLBEGIN
 
 using namespace std;
 
 int n; // Number of teams
 int m; // Number of rounds in the first half of the tournament
-vector<int> latinSquare;
-vector<int> fixedMatchups;
-vector<int> bannedRounds;
+vector<int> latinSquare;		// Latin square used for solving the edge coloring problem in phase 1.
+vector<int> fixedMatchups;		// Vector describing which entries in the latin square to ignore (hard constraints, phase 1)
+vector<int> bannedRounds;		// Vector describing which rounds are not allowed in certain entries (Latin square, hard constraints, phase 1)
 
 int main();
 
@@ -38,19 +39,16 @@ void swapRounds(vector<long> mat, int k, int l);
 void swapRows(vector<long> mat, int k, int l);
 void swapNumbers(vector<long> mat, int k, int l);
 void swapTeams(vector<long> mat, int k, int l);
-
 int modMod(int a, int b);
 int flipOneAndZero(int t);
-
 bool usedInRow(vector<int> latSq, int row, int num);
 bool usedInCol(vector<int> latSq, int col, int num);
 bool isSafe(vector<int> latSq, int row, int col, int num);
 bool solveLatinSquare(vector<int> latSq);
-
 pair<int, int> getUnassignedLocation(vector<int> latSq);
 
 int main() {
-	// Greeting
+	// Greeting/Dialog: number of teams?
 	cout << "Program Start...\n" << "How many teams? ";
 
 	// Save number of teams, n, and number of rounds, m
@@ -65,15 +63,15 @@ int main() {
 	cout << "Are there any hard problem-specific constraints on matchups? (1/0)\n"; bool doPhaseOne; 
 	cin >> doPhaseOne;
 	if (doPhaseOne) {
-		cout << "Reading from hard constraints file...\n";
+		cout << "Will search for hard constriants in hardConstraints.txt file.\n";
 	}
-	else { cout << "Using circle method then...\n"; }
+	else { cout << "No hard constraints. Using circle method...\n"; }
 	cout << "Are there any hard problem-specific constraints on location? (1/0)\n"; bool doPhaseTwo; 
 	cin >> doPhaseTwo;
 	if (doPhaseTwo) {
-		cout << "Reading from hard constraints file...\n";
+		cout << "Will search for hard constriants in hardConstraints.txt file.\n";
 	}
-	else { cout << "Using modified canonical pattern then...\n"; }
+	else { cout << "No hard constraints. Using modified canonical pattern... Or maybe randomized pattern... We'll see...\n"; }
 
 	auto start = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
@@ -92,6 +90,9 @@ int main() {
 			latinSquare[i * n + i] = 1;
 			fixedMatchups.push_back(i * n + i);
 		}
+
+	// To reduce computation time, add some random constraints? 
+	// They will be overwritten if they are in the way of user-specified constraints
 
 	// Read file 
 		string line;
@@ -126,7 +127,6 @@ int main() {
 					latinSquare[(v.operator[](2) - 1) * n + (v.operator[](1) - 1)] = v.operator[](3);
 					cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must play in round " << v.operator[](3);
 					break;
-
 				default:
 					break;
 				}
@@ -134,8 +134,6 @@ int main() {
 			myFile.close();
 		}
 		else { cout << "Error while trying to open file!"; }
-
-		
 
 		// Print the latinSquare before solving it
 		cout << "\n\nLatin square before solving:\n";
@@ -147,9 +145,10 @@ int main() {
 		}
 		cout << "\n";
 
+		// Solve the latin square
 		if (solveLatinSquare(latinSquare) == true) {
 			// Print latinSquare after a successful solve...
-			cout << "\n";
+			cout << "\nSolution found: \n";
 			for (int j = 0; j < n; j++) {
 				for (int i = 0; i < n; i++) {
 					cout << setw(3) << latinSquare[i * n + j];
@@ -169,13 +168,10 @@ int main() {
 					M1[row * m + col] = i % n + 1;
 				}
 			}
-			cout << "\nM1:";
-			printMat(M1, n, m);
 		}
 		else {
-			cout << "No solution exists!" << "\n" << "\n";
+			cout << "No solution exists!" << "\n\n";
 		}
-
 	}
 	else {
 		// Use circle method (reformulated by Matsui & Miyashiro (2006))
@@ -194,6 +190,8 @@ int main() {
 			}
 		}
 	}
+	cout << "\n\nM1: ";
+	printMat(M1, n, m);
 
 	// Extends the plan to a full DRR tournament
 	vector<long> M1_2(n * 2 * m);
@@ -209,23 +207,23 @@ int main() {
 		}
 	}
 
+	// Print solution found in phase 1
 	cout << "\nM1_2 post phase 1:";
 	printMat(M1_2, n, 2 * m);
 
 	// For some reason, this solves a bug concerning the construction of M3 in phase 3
-	
 	vector<long> M1_safety(n * 2 * m);
 	M1_safety = M1_2;
 		
-
+	// Save time of completion
 	auto postPhaseOne = chrono::steady_clock::now();
+
 	/*****************************************************************************************************************************/
 	/*******************************************************| Phase 2: CP |*******************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
 	vector<long> M2 (n * m);
 	M2.resize(n* m);
 
-	
 	if (doPhaseTwo) {
 		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
 
@@ -417,6 +415,32 @@ int main() {
 		env.end();
 	}
 	else {
+		// Randomized (Er det en god løsning?)
+		// Overvej: Siden den fylder ind som en vektor, gælder breaks <= 1 også i overgangen mellem rækker. 
+		//  Det udelukker eksempelvis løsninger hvor et hold spiller ude de sidste to runder, og det næste 
+		//  hold spiller ude første runde
+		cout << "No problem-specific location constraints. \nGenerating a randomized pattern...\n";
+		long t;
+		srand(time(NULL));
+		for (int i = 0; i < n*m; i++) {
+			t = rand() % 2;
+			if (t == 0) {
+				t = -1;
+			}
+			if (M2[i] == 0) {
+				
+				if (M2[i - 1] == t && M2[i - 2] == t) {
+					M2[i] = -t;
+					M2[(M1[i] - 1) * m + (i % m)] = t;
+				}
+				else {
+					M2[i] = t;
+					M2[(M1[i] - 1) * m + (i % m)] = -t;
+				}
+			}
+		}
+
+		/*
 		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)\n";
 		// Canonical pattern (modified)
 		for (int i = 0; i < m; i++) {
@@ -434,22 +458,20 @@ int main() {
 				M2[(n - 1) * m + i] = -1;
 				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
 			}
-			if (i % 2 != 0 && i <= m - 4) {
+			if (i % 2 == 0 && i > m - 4) {
 				M2[(n - 1) * m + i] = 1;
 				M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
 			}
-			if (i % 2 == 0 && i > m - 4) {
+			if (i % 2 != 0 && i <= m - 4) {
 				M2[(n - 1) * m + i] = 1;
-			  	M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1; 
+				M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
 			}
 			if (i % 2 != 0 && i > m - 4) {
 				M2[(n - 1) * m + i] = -1;
 				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
 			}
-		}
+		}*/
 	}
-	cout << "\nM2:";
-	printMat(M2, n, m);
 
 	// Extends the plan to a full DRR tournament
 	vector<long> M2_2 (n * 2 * m);
@@ -479,9 +501,11 @@ int main() {
 		M3[i] = M1_2[i] * M2_2[i];
 		//cout << M1_2[i] << "  " << M2_2[i] << "  " << M3[i] << "\n";
 	}
+
+	// Print M3 before solving
+	cout << "\nM3: ";
 	printMat(M3, n, 2 * m);
 
-	//printMat(M1_safety, n, 2 * m);
 
 
 
@@ -491,16 +515,20 @@ int main() {
 
 
 
-
+	int t = 0;
 	// Print elapsed time
+	if (doPhaseOne) { t = 700; }
 	auto end = chrono::steady_clock::now();
 	cout << "\n\nElapsed time: "
-		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count()-700 << " ms"
+		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count()-t << " ms"
 		<< "\n" << "Phase 2: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseTwo - postPhaseOne).count() << " ms"
 		<< "\n" << "Phase 3: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - postPhaseTwo).count() << " ms\n---"
-		<< "\n" << "Total  : " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - start).count()-700 << " ms"
+		<< "\n" << "Total  : " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - start).count()-t << " ms"
 		<< "\n" << "------------------------";
 
+	// Play sound on completion
+	//std::string a1 = "done.wav";
+	//PlaySoundW(LPCWSTR(a1.c_str()), NULL, 0x0000);
 	return 0;
 }
 
@@ -594,11 +622,12 @@ pair<int, int> getUnassignedLocation(vector<int> latSq) {
 // all unassigned locations in such a way to meet the requirements
 // for a latin square (no duplicates in rows and columns) as well as
 // the problem-specific hard constraints
+int iter = 0;
 bool solveLatinSquare(vector<int> latSq) {
 	// Stops if the grid has been filled
 	if (getUnassignedLocation(latSq) == make_pair(n,n))
 	{
-		cout << " Latin square found!\n";
+		cout << "\n\nLatin square found!\nNumber of iterations: " << iter;
 		Sleep(700);
 		latinSquare = latSq;
 		return true;
@@ -609,8 +638,9 @@ bool solveLatinSquare(vector<int> latSq) {
 	int row = rowAndCol.first;
 	int col = rowAndCol.second;
 
-	// Consider digits 1 to n (colors/rounds)
-	for (int num = 1; num <= n; num++)
+	// Consider digits 2 to n (colors/rounds) 
+	// There is no need to consider 1, since all 1's have been placed from start
+	for (int num = 2; num <= n; num++)
 	{
 		// If placing the current number in the current
 		// unassigned location is valid, go ahead
@@ -620,9 +650,14 @@ bool solveLatinSquare(vector<int> latSq) {
 			latSq[row* n + col] = num;
 			latSq[col* n + row] = num;
 
+			iter++;
+			if (iter % 231237 == 0) {
+				cout << "\rOn iteration " << iter << ". Currently testing values in entry " << setw(3) << row * n + col 
+					 << " out of " << setw(3) << latSq.size() << ". Clicking in console will cancel!";
+				std::cout.flush();
+			}
+			
 
-			std::cout << "\rProgress: " << setw(3) << row * n + col << " out of " << setw(3) << latSq.size() << ". Clicking in console will cancel!...";
-			std::cout.flush();
 
 			// Do the same thing again recursively. If we go 
 			// through all of the recursions, and in the end 
@@ -632,7 +667,7 @@ bool solveLatinSquare(vector<int> latSq) {
 			{
 				return true;
 			}
-
+			
 			// As we were not able to validly go through all 
 			// of the recursions, we must have an invalid number
 			// placement somewhere. Lets go back and try a 
