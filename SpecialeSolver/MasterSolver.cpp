@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.3.7
+// Version: 0.5.0
 // ---------------------------------
 
 #include <iostream>
@@ -39,13 +39,18 @@ void swapRounds(vector<long> mat, int k, int l);
 void swapRows(vector<long> mat, int k, int l);
 void swapNumbers(vector<long> mat, int k, int l);
 void swapTeams(vector<long> mat, int k, int l);
+void permutate(vector<long> plan, int num, int i, int j);
+void basicLocalSearch(vector<long> plan);
+long cost(vector<long> plan);
 int modMod(int a, int b);
 int flipOneAndZero(int t);
+vector<long> firstAcceptNeighborhoodSearch(vector<long> plan);
+pair<int, int> getUnassignedLocation(vector<int> latSq);
 bool usedInRow(vector<int> latSq, int row, int num);
 bool usedInCol(vector<int> latSq, int col, int num);
 bool isSafe(vector<int> latSq, int row, int col, int num);
 bool solveLatinSquare(vector<int> latSq);
-pair<int, int> getUnassignedLocation(vector<int> latSq);
+bool isNegative(long t);
 
 int main() {
 	// Greeting/Dialog: number of teams?
@@ -415,6 +420,7 @@ int main() {
 		env.end();
 	}
 	else {
+	/*
 		// Randomized (Er det en god løsning?)
 		// Overvej: Siden den fylder ind som en vektor, gælder breaks <= 1 også i overgangen mellem rækker. 
 		//  Det udelukker eksempelvis løsninger hvor et hold spiller ude de sidste to runder, og det næste 
@@ -439,8 +445,8 @@ int main() {
 				}
 			}
 		}
-
-		/*
+	*/
+		
 		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)\n";
 		// Canonical pattern (modified)
 		for (int i = 0; i < m; i++) {
@@ -470,7 +476,7 @@ int main() {
 				M2[(n - 1) * m + i] = -1;
 				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
 			}
-		}*/
+		}
 	}
 
 	// Extends the plan to a full DRR tournament
@@ -506,7 +512,7 @@ int main() {
 	cout << "\nM3: ";
 	printMat(M3, n, 2 * m);
 
-
+	basicLocalSearch(M3);
 
 
 
@@ -555,6 +561,7 @@ void printMat(vector<long> arr, int r, int c) {
 		cout << "\n";
 	}
 }
+
 
 /********* Phase 1 *********/
 // Returns a boolean which indicates whether any assigned entry
@@ -683,6 +690,7 @@ bool solveLatinSquare(vector<int> latSq) {
 	return false;
 }
 
+
 /********* Phase 2 *********/
 // The modified modulo function used by Matsui & Miyashiro (2006)
 int modMod(int a, int b) {
@@ -710,14 +718,15 @@ int flipOneAndZero(int t) {
 	return 0;
 }
 
+
 /********* Phase 3 *********/
 // Method for swapping two rounds in a full tournament plan (move p_1)
-// Args: (Matrix, 1st round, 2nd round) - note: uses actual round number (e.g. there is no round 0)
+// Args: (Matrix, 1st round, 2nd round)
 void swapRounds(vector<long> mat, int k, int l) {
 	for (int i = 0; i < 2 * n; i++) {
-		long temp = mat[i * m + k - 1];
-		mat[i * m + k - 1] = mat[i * m + l - 1];
-		mat[i * m + l - 1] = temp;
+		long temp = mat[i * m + k];
+		mat[i * m + k] = mat[i * m + l];
+		mat[i * m + l] = temp;
 	}
 }
 
@@ -751,8 +760,208 @@ void swapNumbers(vector<long> mat, int k, int l) {
 }
 
 // Method for swapping the schedules of two teams (move p_2)
-// Args: (Tournament plan, team 1, team 2) - note: uses actual team number (e.g. there is no team 0)
+// Args: (Tournament plan, team 1, team 2) 
 void swapTeams(vector<long> mat, int k, int l) {
-	swapRows(mat, k - 1, l - 1);
+	swapRows(mat, k, l);
 	swapNumbers(mat, k, l);
+}
+
+// Returns the costs for a tournament plan as defined by a .txt file
+long cost(vector<long> plan) {
+	long cost = 0;
+
+	
+	// Read file 
+	string line;
+	string H;
+	int f;
+	int constraintCode;
+	int round;
+	long team1;
+	long team2;
+	vector<int> v;
+	ifstream myFile("costs.txt");
+	/*
+	if (myFile.is_open()) {
+		cout << "\n\nFound constraints: ";
+		while (getline(myFile, line)) {			// Read string 
+			stringstream ss(line);				// Make stringstream from s 
+			v.clear();							// Clear vector v
+			while (ss >> f) {					// Read ints from ss into f 
+				v.push_back(f);					// Add these to vector 
+			}
+			constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
+			switch (constraintCode) {
+			case 1:	// Soft constraint s1
+				team1 = v.operator[](1) - 1;
+				team2 = v.operator[](2) - 1;
+				for (int i = 0; i < 2*m; i++) {
+					if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i]) 
+						&& false == isNegative(plan[team2 * n + i])) {
+						cost += v.operator[](3);
+					}
+				}
+				break;
+			case 2: // Soft constraint s2
+				team1 = v.operator[](1) - 1;
+				round = v.operator[](2) - 1;
+				if (isNegative(plan[team1 * 2 * m + round]) == false) {
+					cost += v.operator[](3);
+				}
+				break;
+			case 3: // Soft constraint s3
+				team1 = v.operator[](1) - 1;
+				team2 = v.operator[](2) - 1;
+				round = v.operator[](3) - 1;
+				if (plan[team1 * 2 * m + round] == team2 || plan[team1 * 2 * m + round] == -team2) {
+					cost += v.operator[](4);
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		myFile.close();
+	}
+	else { cout << "Error while trying to open file!"; }
+	*/
+
+	// Test costs
+		// Soft constraint s1
+		team1 = 1 - 1 ;
+		team2 = n;
+		for (int i = 0; i < 2 * m; i++) {
+			if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i])
+				&& isNegative(plan[team2 * n + i]) == false) {
+				cost += 100000;
+			}
+		}
+		
+		// Soft constraint s2
+		team1 = 3 - 1;
+		round = 3 - 1;
+		if (isNegative(plan[team1 * 2 * m + round]) == false) {
+			cost += 5000;
+		}
+
+		 // Soft constraint s3
+		team1 = 4-1;
+		team2 = 29;
+		round = 1 - 1;
+		if (plan[team1 * 2 * m + round] == team2 || plan[team1 * 2 * m + round] == -team2) {
+			cost += 13000;
+		}
+
+
+
+	// Soft constraint s4 should always be in place
+	long ms;
+	long smallest;
+	for (int col = 0; col < 2 * m; col++)	{
+		smallest = 10000;
+		for (int row = 0; row < n; row++) {
+			ms = (plan[row * 2 * m + col]) * (row + 1);
+			if(isNegative(ms)) {
+				ms = -ms;
+			}
+			if (ms < smallest) {
+				smallest = ms;
+			}
+		}
+		cost += smallest;
+	}
+	return cost;
+}
+
+
+// Returns the first improving neighbor (first accept) to a given tournament plan
+vector<long> firstAcceptNeighborhoodSearch(vector<long> plan) {
+	int iteration = 0;
+	vector<long> oldPlan = plan; // Save the plan before making changes
+	int oldCost = cost(plan); // Save the cost of the original plan
+	if (iteration % 4 == 0 || iteration % 4 == 2) {
+		for (int i = 0; i < n - 1; i++) {
+			for (int j = i + 1; j < n; j++) {
+				for (int k = 0; k < m - 1; k++) {
+					for (int l = k + 1; l < m; l++) {
+						if (iteration % 4 == 0) {			// move p1-p2
+							swapRounds(plan, i, j);
+							swapTeams(plan, k, l);
+							if (oldCost > cost(plan)) {			// If the new plan is better, return it
+								cout << " FA: found better";
+								return plan;
+							}
+						}
+						else {								// move p2-p1
+							swapTeams(plan, k, l);
+							swapRounds(plan, i, j);
+							if (oldCost > cost(plan)) {			// If the new plan is better, return it
+								cout << " FA: found better";
+								return plan;
+							}
+						}
+
+					}
+				}
+			}
+		}
+		iteration++;
+	}
+	else if (iteration % 4 == 1) {							// move p1-p1
+		for (int i = 0; i < n - 1; i++) {
+			for (int j = i + 1; j < n; j++) {
+				swapRounds(plan, i, j);
+				swapRounds(plan, i, j);
+				if (oldCost > cost(plan)) {			// If the new plan is better, return it
+					cout << " FA: found better";
+					return plan;
+				}
+				
+			}
+		}
+		iteration++;
+	}
+	else if (iteration % 4 == 3) {							// move p2-p2
+		for (int k = 0; k < m - 1; k++) {
+			for (int l = k + 1; l < m; l++) {
+				swapTeams(plan, k, l);
+				swapTeams(plan, k, l);
+				if (oldCost > cost(plan)) {			// If the new plan is better, return it
+					cout << " FA: found better";
+					return plan;
+				}
+				
+			}
+		}
+		iteration++;
+	}
+	
+	
+	// otherwise, revert the changes and look at another neighbor	
+	plan = oldPlan;
+	
+
+	return oldPlan; // If we go through all neighbors without improvement, the old plan is returned.
+}
+
+void basicLocalSearch(vector<long> plan) {
+	cout << "\n=== Basic local search (greedy)!\nInitial solution:";
+	printMat(plan, n, 2 * m);
+	cout << "\nWith a cost of: " << cost(plan);
+	int iteration = 0;
+	long oldCost = cost(plan) + 1;
+	while (oldCost > cost(plan)) {
+		iteration++;
+		firstAcceptNeighborhoodSearch(plan);
+		cout << " first accept.";
+		oldCost = cost(plan);
+	}
+	cout << "\n\nDone!\nNew solution:";
+	printMat(plan, n, 2 * m);
+	cout << "\n\nWith a cost of: " << cost(plan);
+}
+
+// Returns true if the argument is negative
+bool isNegative(long t) {
+	return (t < 0);
 }

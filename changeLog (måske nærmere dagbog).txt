@@ -356,7 +356,23 @@ v. 0.4.1 --- (20-05-2020)
 	Dog tænker jeg ikke det gør så meget, siden der jo ikke er nogen bibetingelser og dermed ønsker til hvem der spiller hvor hvornår.
   - Den random kode tager ikke højde for overgangen mellem de to halvdele af turneringen
 
-
+v. 0.5.0 --- (25-05-2020)
+ = Fase 2 = 
+  - Har udkommenteret random-koden og gået tilbage til canonical pattern (som jo fungerer med cirkelalg i fase 1), så jeg kan begynde på fase 3
+ = Fase 3 =
+  - Har tilføjet en grådig local search. Jeg ved ikke om tabusearch bliver refaktoreret, men det er local search altså blevet.
+ = Hjælpemetoder/refaktorering = 
+  - basicLocalSearch(): En grådig local search som stopper når der ikke er forbedring
+  - isNegative(): returnerer true, hvis det givne tal er negativt
+  - firstAcceptNeighborhoodSearch(): Returnerer den første naboløsning som er en forbedring. Hvilket move den laver for at opnå
+	en naboløsning afhænger af hvilken iteration den er i. Den cirkulerer altså igennem de forskellige muligheder.
+	Fungerer vist ikke!  
+  - cost(): Returnerer costs for en turneringsplan. Der er kode som læser omkostninger fra en fil, som er udkommenteret.
+	Jeg tror det er meget bedre at åbne filen én gang og så gemme omkostningerne i en variabel end at åbne filen hver gang
+	man skal tjekke omkostningerne for en plan.
+	Jeg har tilføjet nogle midlertidige omkostninger, som træder i kraft i den standardløsning som man får ved at bruge
+	cirkelalg+canonical.
+  -
 
 
 
