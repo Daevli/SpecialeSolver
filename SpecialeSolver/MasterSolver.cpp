@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.5.0
+// Version: 0.5.1
 // ---------------------------------
 
 #include <iostream>
@@ -512,14 +512,11 @@ int main() {
 	cout << "\nM3: ";
 	printMat(M3, n, 2 * m);
 
-	basicLocalSearch(M3);
+	swapRows(M3, 1, 2);
 
+	printMat(M3, n, 2 * m);
 
-
-
-
-
-
+	//basicLocalSearch(M3);
 
 	int t = 0;
 	// Print elapsed time
@@ -533,8 +530,8 @@ int main() {
 		<< "\n" << "------------------------";
 
 	// Play sound on completion
-	//std::string a1 = "done.wav";
-	//PlaySoundW(LPCWSTR(a1.c_str()), NULL, 0x0000);
+	std::string a1 = "done.wav";
+	PlaySoundW(LPCWSTR(a1.c_str()), NULL, 0x0000);
 	return 0;
 }
 
@@ -724,9 +721,7 @@ int flipOneAndZero(int t) {
 // Args: (Matrix, 1st round, 2nd round)
 void swapRounds(vector<long> mat, int k, int l) {
 	for (int i = 0; i < 2 * n; i++) {
-		long temp = mat[i * m + k];
-		mat[i * m + k] = mat[i * m + l];
-		mat[i * m + l] = temp;
+		swap(mat[i * m + k], mat[i * m + l]);
 	}
 }
 
@@ -734,9 +729,7 @@ void swapRounds(vector<long> mat, int k, int l) {
 // Args: (Matrix, 1st row, 2nd row)
 void swapRows(vector<long> mat, int k, int l) {
 	for (int i = 0; i < 2 * m; i++) {
-		long temp = mat[i + k * 2 * m];
-		mat[i + k * 2 * m] = mat[i + l * 2 * m];
-		mat[i + l * 2 * m] = temp;
+		swap(mat[i + k * 2 * m], mat[i + l * 2 * m]);
 	}
 }
 
@@ -797,7 +790,7 @@ long cost(vector<long> plan) {
 				team2 = v.operator[](2) - 1;
 				for (int i = 0; i < 2*m; i++) {
 					if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i]) 
-						&& false == isNegative(plan[team2 * n + i])) {
+						&& !isNegative(plan[team2 * n + i])) {
 						cost += v.operator[](3);
 					}
 				}
@@ -805,7 +798,7 @@ long cost(vector<long> plan) {
 			case 2: // Soft constraint s2
 				team1 = v.operator[](1) - 1;
 				round = v.operator[](2) - 1;
-				if (isNegative(plan[team1 * 2 * m + round]) == false) {
+				if (!isNegative(plan[team1 * 2 * m + round])) {
 					cost += v.operator[](3);
 				}
 				break;
@@ -832,7 +825,7 @@ long cost(vector<long> plan) {
 		team2 = n;
 		for (int i = 0; i < 2 * m; i++) {
 			if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i])
-				&& isNegative(plan[team2 * n + i]) == false) {
+				&& !isNegative(plan[team2 * n + i])) {
 				cost += 100000;
 			}
 		}
@@ -840,7 +833,7 @@ long cost(vector<long> plan) {
 		// Soft constraint s2
 		team1 = 3 - 1;
 		round = 3 - 1;
-		if (isNegative(plan[team1 * 2 * m + round]) == false) {
+		if (!isNegative(plan[team1 * 2 * m + round])) {
 			cost += 5000;
 		}
 
@@ -873,18 +866,17 @@ long cost(vector<long> plan) {
 	return cost;
 }
 
-
 // Returns the first improving neighbor (first accept) to a given tournament plan
-vector<long> firstAcceptNeighborhoodSearch(vector<long> plan) {
-	int iteration = 0;
+// The neighborhood used is determined by a given integer, num
+vector<long> firstAcceptNeighborhoodSearch(vector<long> plan, int num) {
 	vector<long> oldPlan = plan; // Save the plan before making changes
 	int oldCost = cost(plan); // Save the cost of the original plan
-	if (iteration % 4 == 0 || iteration % 4 == 2) {
+	if (num % 4 == 0 || num % 4 == 2) {
 		for (int i = 0; i < n - 1; i++) {
 			for (int j = i + 1; j < n; j++) {
 				for (int k = 0; k < m - 1; k++) {
 					for (int l = k + 1; l < m; l++) {
-						if (iteration % 4 == 0) {			// move p1-p2
+						if (num % 4 == 0) {			// move p1-p2
 							swapRounds(plan, i, j);
 							swapTeams(plan, k, l);
 							if (oldCost > cost(plan)) {			// If the new plan is better, return it
@@ -905,9 +897,8 @@ vector<long> firstAcceptNeighborhoodSearch(vector<long> plan) {
 				}
 			}
 		}
-		iteration++;
 	}
-	else if (iteration % 4 == 1) {							// move p1-p1
+	else if (num % 4 == 1) {							// move p1-p1
 		for (int i = 0; i < n - 1; i++) {
 			for (int j = i + 1; j < n; j++) {
 				swapRounds(plan, i, j);
@@ -919,9 +910,8 @@ vector<long> firstAcceptNeighborhoodSearch(vector<long> plan) {
 				
 			}
 		}
-		iteration++;
 	}
-	else if (iteration % 4 == 3) {							// move p2-p2
+	else if (num % 4 == 3) {							// move p2-p2
 		for (int k = 0; k < m - 1; k++) {
 			for (int l = k + 1; l < m; l++) {
 				swapTeams(plan, k, l);
@@ -933,7 +923,6 @@ vector<long> firstAcceptNeighborhoodSearch(vector<long> plan) {
 				
 			}
 		}
-		iteration++;
 	}
 	
 	
@@ -952,7 +941,7 @@ void basicLocalSearch(vector<long> plan) {
 	long oldCost = cost(plan) + 1;
 	while (oldCost > cost(plan)) {
 		iteration++;
-		firstAcceptNeighborhoodSearch(plan);
+		firstAcceptNeighborhoodSearch(plan, iteration);
 		cout << " first accept.";
 		oldCost = cost(plan);
 	}

@@ -372,8 +372,13 @@ v. 0.5.0 --- (25-05-2020)
 	man skal tjekke omkostningerne for en plan.
 	Jeg har tilføjet nogle midlertidige omkostninger, som træder i kraft i den standardløsning som man får ved at bruge
 	cirkelalg+canonical.
-  -
 
+v. 0.5.1 --- (26-05-2020)
+ = Hjælpemetoder/Refaktorisering =
+  - firstAcceptNeighborhoodSearch(): Tager nu to argumenter. En løsning (turneringsplan) og en integer, som afgør hvilken neighborhoodstruktur der bruges.
+  - swap-metoderne gemmer ikke matricen som de kommer frem til. Det gør, at firstaccept ikke fungerer ordenligt. 
+  - Har ændret i swapRounds() og swapRows() så de benytter std::swap()-metoden i stedet for en temp-variabel.
+  - Har ændret 'isNegative() == false' til '!isNegative()' i cost()-metoden.
 
 
 
