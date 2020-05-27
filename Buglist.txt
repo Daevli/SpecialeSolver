@@ -11,6 +11,10 @@ ACTIVE
 
 => Koden der genererer random H/A pattern giver nogle gange 3 1'ere eller -1'ere i streg når n >= 8.
 
+=> Anden del af rowsOk(), hvor der tjekkes om holdene spiller mod sig selv siger, at initialløsningen ikke er feasible.
+   -> Hvis der indsættes et cout i metoden, fungerer det.
+   -> Ved udkommentering er det tydeligt, at det er denne del af metoden den er gal med.
+
 SOLVED
 => M3 bliver ikke regnet ordenligt for n >= 10
    -> M3 skal være lig M1_2 * M2_2, men nogle indgange bliver bare erstattet af M2_2.

@@ -377,12 +377,19 @@ v. 0.5.1 --- (26-05-2020)
  = Hjælpemetoder/Refaktorisering =
   - firstAcceptNeighborhoodSearch(): Tager nu to argumenter. En løsning (turneringsplan) og en integer, som afgør hvilken neighborhoodstruktur der bruges.
   - swap-metoderne gemmer ikke matricen som de kommer frem til. Det gør, at firstaccept ikke fungerer ordenligt. 
-  - Har ændret i swapRounds() og swapRows() så de benytter std::swap()-metoden i stedet for en temp-variabel.
+  - Har ændret i swapRounds() og swapRows() så de benytter std::swap()-metoden i stedet for en temp-variabel. (det var smart!)
   - Har ændret 'isNegative() == false' til '!isNegative()' i cost()-metoden.
 
-
-
-
+v. 0.5.2 --- (27-05-2020)
+  - Har gjort matricerne M1, M2, M3 globale variable. Jeg troede det ville løse problemet med at firstAccept...() ikke fungerede ordenligt, men
+	det gjorde det ikke (Se løsningen nedenfor). Det skader dog ikke, så jeg lader dem være globale. 
+ = Hjælpemetoder/Refaktorisering =
+  - Har tilføjet "modify by reference" (dvs. tilføjet et '&' foran parametre) til firstAccept...() og swap-metoderne. Det gør, at de ændrer i 
+	matricen som de bliver fodret, i stedet for at kopiere og oprette et nyt objekt, som de ændrer i. 
+  - Har tilføjet isFeasible()-metoden, som returnerer true, hvis en turneringsplan er feasible. Dertil kommer metoderne columnsOk(), rowsOk() og breaksOk().
+  - Har lavet firstAccept...() om til boolean. Den returnerer true, hvis der er en bedre nabo, og ændrer i den plan der bliver givet.
+  - Der er et problem med rowsOk() (bug). Hvis der er et cout i metoden, fungerer den fint, men hvis der ikke er, siger den, at initialløsningen ikke er feasible
+	(se bugList)
 
 
 

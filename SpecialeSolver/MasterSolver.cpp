@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.5.1
+// Version: 0.5.2
 // ---------------------------------
 
 #include <iostream>
@@ -30,27 +30,33 @@ int m; // Number of rounds in the first half of the tournament
 vector<int> latinSquare;		// Latin square used for solving the edge coloring problem in phase 1.
 vector<int> fixedMatchups;		// Vector describing which entries in the latin square to ignore (hard constraints, phase 1)
 vector<int> bannedRounds;		// Vector describing which rounds are not allowed in certain entries (Latin square, hard constraints, phase 1)
+vector<long> M1;
+vector<long> M2;
+vector<long> M3;
 
 int main();
 
 // Declare refactoring methods
-void printMat(vector<long>, int, int);
-void swapRounds(vector<long> mat, int k, int l);
-void swapRows(vector<long> mat, int k, int l);
-void swapNumbers(vector<long> mat, int k, int l);
-void swapTeams(vector<long> mat, int k, int l);
-void permutate(vector<long> plan, int num, int i, int j);
-void basicLocalSearch(vector<long> plan);
-long cost(vector<long> plan);
+void printMat(vector<long> &arr, int n, int m);
+void swapRounds(vector<long> &mat, int k, int l);
+void swapRows(vector<long> &mat, int k, int l);
+void swapNumbers(vector<long> &mat, int k, int l);
+void swapTeams(vector<long>& mat, int k, int l);
+void basicLocalSearch(vector<long> &plan);
+long cost(vector<long>& plan);
 int modMod(int a, int b);
 int flipOneAndZero(int t);
-vector<long> firstAcceptNeighborhoodSearch(vector<long> plan);
+bool firstAcceptNeighborhoodSearch(vector<long>& plan, int num);
 pair<int, int> getUnassignedLocation(vector<int> latSq);
 bool usedInRow(vector<int> latSq, int row, int num);
 bool usedInCol(vector<int> latSq, int col, int num);
 bool isSafe(vector<int> latSq, int row, int col, int num);
 bool solveLatinSquare(vector<int> latSq);
 bool isNegative(long t);
+bool columnsOk(vector<long>& plan);
+bool rowsOk(vector<long>& plan);
+bool breaksOk(vector<long>& plan);
+bool isFeasible(vector<long>& plan);
 
 int main() {
 	// Greeting/Dialog: number of teams?
@@ -82,7 +88,6 @@ int main() {
 	/*****************************************************************************************************************************/
 	/*******************************************| Phase 1: Edge-coloring/Latin Square |*******************************************/
 	/**********************************************/ cout << "\n\n--- Phase 1:\n";/***********************************************/
-	vector<long> M1(n * m);
 	M1.resize(n * m);
 
 	if (doPhaseOne) {
@@ -97,6 +102,7 @@ int main() {
 		}
 
 	// To reduce computation time, add some random constraints? 
+	// Ensure that they are feasible 
 	// They will be overwritten if they are in the way of user-specified constraints
 
 	// Read file 
@@ -226,8 +232,7 @@ int main() {
 	/*****************************************************************************************************************************/
 	/*******************************************************| Phase 2: CP |*******************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
-	vector<long> M2 (n * m);
-	M2.resize(n* m);
+	M2.resize(n * m);
 
 	if (doPhaseTwo) {
 		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
@@ -499,7 +504,6 @@ int main() {
 	/*****************************************************************************************************************************/
 	/*************************************************| Phase 3: Metaheuristics |*************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 3:\n";/**********************************************/
-	vector<long> M3 (n * 2 * m);
 	M3.resize(n * 2 * m);
 
 	// Create M3 by multiplying entries from the solutions found in the previous phases
@@ -509,14 +513,13 @@ int main() {
 	}
 
 	// Print M3 before solving
-	cout << "\nM3: ";
+	cout << "\nM3: feasible: " << isFeasible(M3);
+
+
+
 	printMat(M3, n, 2 * m);
 
-	swapRows(M3, 1, 2);
-
-	printMat(M3, n, 2 * m);
-
-	//basicLocalSearch(M3);
+	basicLocalSearch(M3);
 
 	int t = 0;
 	// Print elapsed time
@@ -530,7 +533,7 @@ int main() {
 		<< "\n" << "------------------------";
 
 	// Play sound on completion
-	std::string a1 = "done.wav";
+	std::string a1 = "av";
 	PlaySoundW(LPCWSTR(a1.c_str()), NULL, 0x0000);
 	return 0;
 }
@@ -540,7 +543,7 @@ int main() {
 /********* General *********/
 // Method for printing out an array as a matrix.
 // Args: (Array, # of rows, # of columns)
-void printMat(vector<long> arr, int r, int c) {
+void printMat(vector<long> &arr, int r, int c) {
 	cout << "\n" << "\n" << "round  |";
 	for (int j = 0; j < c; j++) {
 		cout << setw(4) << j + 1;
@@ -559,54 +562,7 @@ void printMat(vector<long> arr, int r, int c) {
 	}
 }
 
-
 /********* Phase 1 *********/
-// Returns a boolean which indicates whether any assigned entry
-// in the specified row matches the given number. 
-bool usedInRow(vector<int> latSq, int row, int num) {
-	for (int col = 0; col < n; col++)
-		if (latSq[row * n + col] == num)
-		{
-			return true;
-		}
-	return false;
-}
-
-// Returns a boolean which indicates whether any assigned entry
-// in the specified column matches the given number. 
-bool usedInCol(vector<int> latSq, int col, int num) {
-	for (int row = 0; row < n; row++)
-		if (latSq[row * n + col] == num)
-		{
-			return true;
-		}
-	return false;
-}
-
-// Returns a boolean which indicates whether the given number breaks a constraint
-// either by trying to change a fixed number or assigning a number that is not allowed
-bool breaksConstraint(vector<int> latSq, int col, int row, int num) {
-	for (int i = 0; i < fixedMatchups.size(); i++)
-	{
-		if (row * n + col == fixedMatchups[i]) {
-			return true;
-		}
-		if (num == bannedRounds[row * n + col]) {
-			return true;
-		}
-	}
-	return false;
-}
-
-// Returns a boolean which indicates whether it will be legal to assign
-// num to the given row,col location.
-bool isSafe(vector<int> latSq, int row, int col, int num) {
-	// Check if 'num' is not already placed in current row,
-	// and current column
-	return !usedInRow(latSq, row, num) &&
-		!usedInCol(latSq, col, num) &&
-		!breaksConstraint(latSq, row, col, num);
-}
 
 // Searches the grid to find an entry that is still unassigned. If
 // found, the reference parameters row, col will be set the location
@@ -687,6 +643,53 @@ bool solveLatinSquare(vector<int> latSq) {
 	return false;
 }
 
+// Returns a boolean which indicates whether any assigned entry
+// in the specified row matches the given number. 
+bool usedInRow(vector<int> latSq, int row, int num) {
+	for (int col = 0; col < n; col++)
+		if (latSq[row * n + col] == num)
+		{
+			return true;
+		}
+	return false;
+}
+
+// Returns a boolean which indicates whether any assigned entry
+// in the specified column matches the given number. 
+bool usedInCol(vector<int> latSq, int col, int num) {
+	for (int row = 0; row < n; row++)
+		if (latSq[row * n + col] == num)
+		{
+			return true;
+		}
+	return false;
+}
+
+// Returns a boolean which indicates whether the given number breaks a constraint
+// either by trying to change a fixed number or assigning a number that is not allowed
+bool breaksConstraint(vector<int> latSq, int col, int row, int num) {
+	for (int i = 0; i < fixedMatchups.size(); i++)
+	{
+		if (row * n + col == fixedMatchups[i]) {
+			return true;
+		}
+		if (num == bannedRounds[row * n + col]) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Returns a boolean which indicates whether it will be legal to assign
+// num to the given row,col location.
+bool isSafe(vector<int> latSq, int row, int col, int num) {
+	// Check if 'num' is not already placed in current row,
+	// and current column
+	return !usedInRow(latSq, row, num) &&
+		!usedInCol(latSq, col, num) &&
+		!breaksConstraint(latSq, row, col, num);
+}
+
 
 /********* Phase 2 *********/
 // The modified modulo function used by Matsui & Miyashiro (2006)
@@ -719,7 +722,7 @@ int flipOneAndZero(int t) {
 /********* Phase 3 *********/
 // Method for swapping two rounds in a full tournament plan (move p_1)
 // Args: (Matrix, 1st round, 2nd round)
-void swapRounds(vector<long> mat, int k, int l) {
+void swapRounds(vector<long> &mat, int k, int l) {
 	for (int i = 0; i < 2 * n; i++) {
 		swap(mat[i * m + k], mat[i * m + l]);
 	}
@@ -727,7 +730,7 @@ void swapRounds(vector<long> mat, int k, int l) {
 
 // Method for swapping two rows in a full tournament plan
 // Args: (Matrix, 1st row, 2nd row)
-void swapRows(vector<long> mat, int k, int l) {
+void swapRows(vector<long> &mat, int k, int l) {
 	for (int i = 0; i < 2 * m; i++) {
 		swap(mat[i + k * 2 * m], mat[i + l * 2 * m]);
 	}
@@ -735,7 +738,7 @@ void swapRows(vector<long> mat, int k, int l) {
 
 // Method for swapping all entries in a matrix containing k with l.
 // Args: (Matrix, 1st int, 2nd int)
-void swapNumbers(vector<long> mat, int k, int l) {
+void swapNumbers(vector<long> &mat, int k, int l) {
 	for (int i = 0; i < 2 * n * m; i++) {
 		if (mat[i] == k) {
 			mat[i] = l;
@@ -754,15 +757,14 @@ void swapNumbers(vector<long> mat, int k, int l) {
 
 // Method for swapping the schedules of two teams (move p_2)
 // Args: (Tournament plan, team 1, team 2) 
-void swapTeams(vector<long> mat, int k, int l) {
+void swapTeams(vector<long> &mat, int k, int l) {
 	swapRows(mat, k, l);
 	swapNumbers(mat, k, l);
 }
 
 // Returns the costs for a tournament plan as defined by a .txt file
-long cost(vector<long> plan) {
+long cost(vector<long> &plan) {
 	long cost = 0;
-
 	
 	// Read file 
 	string line;
@@ -839,7 +841,7 @@ long cost(vector<long> plan) {
 
 		 // Soft constraint s3
 		team1 = 4-1;
-		team2 = 29;
+		team2 = 14;
 		round = 1 - 1;
 		if (plan[team1 * 2 * m + round] == team2 || plan[team1 * 2 * m + round] == -team2) {
 			cost += 13000;
@@ -868,84 +870,77 @@ long cost(vector<long> plan) {
 
 // Returns the first improving neighbor (first accept) to a given tournament plan
 // The neighborhood used is determined by a given integer, num
-vector<long> firstAcceptNeighborhoodSearch(vector<long> plan, int num) {
+bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 	vector<long> oldPlan = plan; // Save the plan before making changes
 	int oldCost = cost(plan); // Save the cost of the original plan
-	if (num % 4 == 0 || num % 4 == 2) {
-		for (int i = 0; i < n - 1; i++) {
-			for (int j = i + 1; j < n; j++) {
-				for (int k = 0; k < m - 1; k++) {
-					for (int l = k + 1; l < m; l++) {
-						if (num % 4 == 0) {			// move p1-p2
-							swapRounds(plan, i, j);
-							swapTeams(plan, k, l);
-							if (oldCost > cost(plan)) {			// If the new plan is better, return it
-								cout << " FA: found better";
-								return plan;
-							}
+	if (num % 4 == 0) {
+		cout << "move p1p2";
+		for (int i = 0; i < n - 1; i++)
+			for (int j = i + 1; j < n; j++)
+				for (int k = 0; k < m - 1; k++)
+					for (int l = k + 1; l < m; l++) {					// move p1-p2
+						swapRounds(plan, i, j);
+						swapTeams(plan, k, l);
+						if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+							cout << " FA: found better";
+							return true;
 						}
-						else {								// move p2-p1
-							swapTeams(plan, k, l);
-							swapRounds(plan, i, j);
-							if (oldCost > cost(plan)) {			// If the new plan is better, return it
-								cout << " FA: found better";
-								return plan;
-							}
-						}
-
+						plan = oldPlan;
 					}
-				}
-			}
-		}
 	}
-	else if (num % 4 == 1) {							// move p1-p1
-		for (int i = 0; i < n - 1; i++) {
-			for (int j = i + 1; j < n; j++) {
+	else if (num % 4 == 1) {							// move p1
+		cout << "move p1";
+		for (int i = 0; i < m - 1; i++) 
+			for (int j = i + 1; j < m; j++) {
 				swapRounds(plan, i, j);
-				swapRounds(plan, i, j);
-				if (oldCost > cost(plan)) {			// If the new plan is better, return it
+				if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
 					cout << " FA: found better";
-					return plan;
+					return true;
 				}
-				
+				plan = oldPlan;
 			}
-		}
 	}
-	else if (num % 4 == 3) {							// move p2-p2
-		for (int k = 0; k < m - 1; k++) {
+	else if (num % 4 == 2) {
+		cout << "move p2p1";
+		for (int i = 0; i < n - 1; i++)
+			for (int j = i + 1; j < n; j++)
+				for (int k = 0; k < m - 1; k++)
+					for (int l = k + 1; l < m; l++) {					// move p2-p1
+						swapTeams(plan, k, l);
+						swapRounds(plan, i, j);
+						if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+							cout << " FA: found better";
+							return true;
+						}
+						plan = oldPlan;
+					}
+	}
+	else if (num % 4 == 3) {							// move p2
+		cout << "move p2";
+		for (int k = 0; k < m - 1; k++) 
 			for (int l = k + 1; l < m; l++) {
 				swapTeams(plan, k, l);
-				swapTeams(plan, k, l);
-				if (oldCost > cost(plan)) {			// If the new plan is better, return it
+				if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
 					cout << " FA: found better";
-					return plan;
+					return true;
 				}
-				
+				plan = oldPlan;
 			}
-		}
-	}
-	
-	
-	// otherwise, revert the changes and look at another neighbor	
-	plan = oldPlan;
-	
+	}	
 
-	return oldPlan; // If we go through all neighbors without improvement, the old plan is returned.
+	return false; // If we go through all neighbors without improvement, the old plan is returned.
 }
 
-void basicLocalSearch(vector<long> plan) {
+void basicLocalSearch(vector<long> &plan) {
 	cout << "\n=== Basic local search (greedy)!\nInitial solution:";
 	printMat(plan, n, 2 * m);
-	cout << "\nWith a cost of: " << cost(plan);
+	cout << "\nWith a cost of: " << cost(plan) << "\n";
 	int iteration = 0;
-	long oldCost = cost(plan) + 1;
-	while (oldCost > cost(plan)) {
+	while (firstAcceptNeighborhoodSearch(plan, iteration)) {
 		iteration++;
-		firstAcceptNeighborhoodSearch(plan, iteration);
-		cout << " first accept.";
-		oldCost = cost(plan);
+		cout << " | ";
 	}
-	cout << "\n\nDone!\nNew solution:";
+	cout << "\nDone!\nNew solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\n\nWith a cost of: " << cost(plan);
 }
@@ -953,4 +948,57 @@ void basicLocalSearch(vector<long> plan) {
 // Returns true if the argument is negative
 bool isNegative(long t) {
 	return (t < 0);
+}
+
+// Returns true, if every column in a tournament plan has values from 1, ..., n
+bool columnsOk(vector<long>& plan) {
+	for (int i = 0; i < 2 * m; i++)	{
+		for (int j = 0; j < n - 1; j++) 
+		for (int k = j + 1; k < n; k++) {
+			if (plan[j * 2 * m + i] == plan[k * 2 * m + i]) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+// Returns false, if there is a problem with the row concerning feasibility
+bool rowsOk(vector<long>& plan) {
+	// Check if a team plays the same team multiple times in the same half
+	for (int i = 0; i < 2 * n; i++) 
+		for (int j = 0; j < m - 1; j++)
+			for (int k = j + 1; k < m; k++) {
+				if (plan[i * m + j] == plan[i * m + k]) {
+					return false;
+				}
+			}
+	// Check if a team plays itself
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < 2 * m; j++) {
+			//cout << "\nIs " << plan[i * 2 * m + j] << " or " << -plan[i * 2 * m + j] << " equal to " << i+1 << "?";
+			if (plan[i * 2 * m + j] == i + 1 || -plan[i * 2 * m + j] == i + 1) {
+				//cout << " Team plays itself!";										<--- Bug: If there is a cout somewhere in here, it works fine, otherwise not........
+				return false;
+			}
+		}
+	return true;
+}
+
+// Returns false, if there are 2 breaks (3 elements with the same sign) in a row
+bool breaksOk(vector<long>& plan) {
+	for (int i = 0; i < n; i++)
+	for (int j = 0; j < 2 * m - 2; j++) {
+		// Return false, if the j'th element in a row has the same sign as the next two elements
+		if (isNegative(plan[i * 2 * m + j]) == isNegative(plan[i * 2 * m + j + 1]) 
+			&& isNegative(plan[i * 2 * m + j + 1]) == isNegative(plan[i * 2 * m + j + 2])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+// Returns true if the tournament plan is feasible
+bool isFeasible(vector<long>& plan) {
+	return (columnsOk(plan) && rowsOk(plan) && breaksOk(plan));
 }
