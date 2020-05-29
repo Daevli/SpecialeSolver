@@ -873,8 +873,36 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 	int oldCost = cost(plan); // Save the cost of the original plan
 	num = 0;
 	while (num < 4) {
+		//if (num % 4 == 1) {							// move p1
+		cout << "\nmove p1 (1/4): ";
+		for (int i = 0; i < m - 1; i++)
+			for (int j = i + 1; j < m; j++) {
+				swapRounds(plan, i, j);
+				if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+					cout << " FA: found better";
+					return true;
+				}
+				plan = oldPlan;
+			}
+		cout << "no improvement, trying another neighborhood... ";
+		num++;
+		//}
+		//if (num % 4 == 3) {							// move p2
+		cout << "\nmove p2 (2/4): ";
+		for (int k = 0; k < m - 1; k++)
+			for (int l = k + 1; l < m; l++) {
+				swapTeams(plan, k, l);
+				if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+					cout << " FA: found better";
+					return true;
+				}
+				plan = oldPlan;
+			}
+		cout << "no improvement, trying another neighborhood... ";
+		num++;
+		//}
 		//if (num % 4 == 0) {
-			cout << "move p1p2 (1/4): ";
+			cout << "\nmove p1p2 (3/4): ";
 			for (int i = 0; i < n - 1; i++)
 				for (int j = i + 1; j < n; j++)
 					for (int k = 0; k < m - 1; k++)
@@ -890,22 +918,8 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 			cout << "no improvement, trying another neighborhood... ";
 			num++;
 		//}
-		//if (num % 4 == 1) {							// move p1
-			cout << "move p1 (2/4): ";
-			for (int i = 0; i < m - 1; i++)
-				for (int j = i + 1; j < m; j++) {
-					swapRounds(plan, i, j);
-					if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-						cout << " FA: found better";
-						return true;
-					}
-					plan = oldPlan;
-				}
-			cout << "no improvement, trying another neighborhood... ";
-			num++;
-			//}
 		//if (num % 4 == 2) {
-			cout << "move p2p1 (3/4): ";
+			cout << "\nmove p2p1 (4/4): ";
 			for (int i = 0; i < n - 1; i++)
 				for (int j = i + 1; j < n; j++)
 					for (int k = 0; k < m - 1; k++)
@@ -921,22 +935,9 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 			cout << "no improvement, trying another neighborhood... ";
 			num++;
 			//}
-		//if (num % 4 == 3) {							// move p2
-			cout << "move p2 (4/4): ";
-			for (int k = 0; k < m - 1; k++)
-				for (int l = k + 1; l < m; l++) {
-					swapTeams(plan, k, l);
-					if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-						cout << " FA: found better";
-						return true;
-					}
-					plan = oldPlan;
-				}
-			num++;
-			//}
+	
 	}
 
-	cout << "\n\nNo improving neighbor!\n";
 	return false; // If we go through all neighbors without improvement, the old plan is returned.
 }
 
@@ -948,14 +949,13 @@ void basicLocalSearch(vector<long>& plan) {
 	int iteration = 0;
 	while (firstAcceptNeighborhoodSearch(plan, iteration)) {
 		iteration++;
-		cout << " | ";
 	}
-	cout << "\nDone!\nNew solution:";
+	cout << "\n\nDone!\nNew solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\n\nWith a cost of: " << cost(plan);
 }
 
-
+/*
 void tabuSearch(vector<long>& plan, int tolerence) {
 	cout << "\n=== Tabu search";
 	int fail = 0;
@@ -974,6 +974,7 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 		}
 	}
 }
+*/
 
 // Returns true if the argument is negative
 bool isNegative(long t) {
