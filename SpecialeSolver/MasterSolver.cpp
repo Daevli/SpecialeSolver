@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.5.2
+// Version: 0.5.3
 // ---------------------------------
 
 #include <iostream>
@@ -397,7 +397,7 @@ int main() {
 			cout << "\n---\n";
 			// Extract model and set parameters for the solve
 			cplex.extract(model);
-			// cplex.setOut(env.getNullStream()); // <-- Gets rid of cplex output
+			cplex.setOut(env.getNullStream()); // <-- Gets rid of cplex output
 			cplex.setParam(IloCplex::Param::MIP::Limits::Solutions, 1); // <-- Only need one solution
 			// Solve the model
 			cplex.solve();
@@ -515,8 +515,6 @@ int main() {
 	// Print M3 before solving
 	cout << "\nM3: feasible: " << isFeasible(M3);
 
-
-
 	printMat(M3, n, 2 * m);
 
 	basicLocalSearch(M3);
@@ -562,8 +560,8 @@ void printMat(vector<long> &arr, int r, int c) {
 	}
 }
 
-/********* Phase 1 *********/
 
+/********* Phase 1 *********/
 // Searches the grid to find an entry that is still unassigned. If
 // found, the reference parameters row, col will be set the location
 // that is unassigned, and true is returned. If no unassigned entries
@@ -722,7 +720,7 @@ int flipOneAndZero(int t) {
 /********* Phase 3 *********/
 // Method for swapping two rounds in a full tournament plan (move p_1)
 // Args: (Matrix, 1st round, 2nd round)
-void swapRounds(vector<long> &mat, int k, int l) {
+void swapRounds(vector<long>& mat, int k, int l) {
 	for (int i = 0; i < 2 * n; i++) {
 		swap(mat[i * m + k], mat[i * m + l]);
 	}
@@ -873,65 +871,77 @@ long cost(vector<long> &plan) {
 bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 	vector<long> oldPlan = plan; // Save the plan before making changes
 	int oldCost = cost(plan); // Save the cost of the original plan
-	if (num % 4 == 0) {
-		cout << "move p1p2";
-		for (int i = 0; i < n - 1; i++)
-			for (int j = i + 1; j < n; j++)
-				for (int k = 0; k < m - 1; k++)
-					for (int l = k + 1; l < m; l++) {					// move p1-p2
-						swapRounds(plan, i, j);
-						swapTeams(plan, k, l);
-						if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-							cout << " FA: found better";
-							return true;
+	num = 0;
+	while (num < 4) {
+		//if (num % 4 == 0) {
+			cout << "move p1p2 (1/4): ";
+			for (int i = 0; i < n - 1; i++)
+				for (int j = i + 1; j < n; j++)
+					for (int k = 0; k < m - 1; k++)
+						for (int l = k + 1; l < m; l++) {					// move p1-p2
+							swapRounds(plan, i, j);
+							swapTeams(plan, k, l);
+							if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+								cout << " FA: found better";
+								return true;
+							}
+							plan = oldPlan;
 						}
-						plan = oldPlan;
+			cout << "no improvement, trying another neighborhood... ";
+			num++;
+		//}
+		//if (num % 4 == 1) {							// move p1
+			cout << "move p1 (2/4): ";
+			for (int i = 0; i < m - 1; i++)
+				for (int j = i + 1; j < m; j++) {
+					swapRounds(plan, i, j);
+					if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+						cout << " FA: found better";
+						return true;
 					}
-	}
-	else if (num % 4 == 1) {							// move p1
-		cout << "move p1";
-		for (int i = 0; i < m - 1; i++) 
-			for (int j = i + 1; j < m; j++) {
-				swapRounds(plan, i, j);
-				if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-					cout << " FA: found better";
-					return true;
+					plan = oldPlan;
 				}
-				plan = oldPlan;
-			}
-	}
-	else if (num % 4 == 2) {
-		cout << "move p2p1";
-		for (int i = 0; i < n - 1; i++)
-			for (int j = i + 1; j < n; j++)
-				for (int k = 0; k < m - 1; k++)
-					for (int l = k + 1; l < m; l++) {					// move p2-p1
-						swapTeams(plan, k, l);
-						swapRounds(plan, i, j);
-						if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-							cout << " FA: found better";
-							return true;
+			cout << "no improvement, trying another neighborhood... ";
+			num++;
+			//}
+		//if (num % 4 == 2) {
+			cout << "move p2p1 (3/4): ";
+			for (int i = 0; i < n - 1; i++)
+				for (int j = i + 1; j < n; j++)
+					for (int k = 0; k < m - 1; k++)
+						for (int l = k + 1; l < m; l++) {					// move p2-p1
+							swapTeams(plan, k, l);
+							swapRounds(plan, i, j);
+							if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+								cout << " FA: found better";
+								return true;
+							}
+							plan = oldPlan;
 						}
-						plan = oldPlan;
+			cout << "no improvement, trying another neighborhood... ";
+			num++;
+			//}
+		//if (num % 4 == 3) {							// move p2
+			cout << "move p2 (4/4): ";
+			for (int k = 0; k < m - 1; k++)
+				for (int l = k + 1; l < m; l++) {
+					swapTeams(plan, k, l);
+					if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+						cout << " FA: found better";
+						return true;
 					}
-	}
-	else if (num % 4 == 3) {							// move p2
-		cout << "move p2";
-		for (int k = 0; k < m - 1; k++) 
-			for (int l = k + 1; l < m; l++) {
-				swapTeams(plan, k, l);
-				if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-					cout << " FA: found better";
-					return true;
+					plan = oldPlan;
 				}
-				plan = oldPlan;
-			}
-	}	
+			num++;
+			//}
+	}
 
+	cout << "\n\nNo improving neighbor!\n";
 	return false; // If we go through all neighbors without improvement, the old plan is returned.
 }
 
-void basicLocalSearch(vector<long> &plan) {
+// Uses first-accept to do a greedy local search
+void basicLocalSearch(vector<long>& plan) {
 	cout << "\n=== Basic local search (greedy)!\nInitial solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\nWith a cost of: " << cost(plan) << "\n";
@@ -943,6 +953,26 @@ void basicLocalSearch(vector<long> &plan) {
 	cout << "\nDone!\nNew solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\n\nWith a cost of: " << cost(plan);
+}
+
+
+void tabuSearch(vector<long>& plan, int tolerence) {
+	cout << "\n=== Tabu search";
+	int fail = 0;
+	int iteration = 0;
+	int a = 100000;
+	int b = 100000;
+	vector<long> tabuList;
+
+	while (fail < tolerence) {
+		iteration++;
+
+
+
+		if (std::count(tabuList.begin(), tabuList.end(), "Some key...") {
+
+		}
+	}
 }
 
 // Returns true if the argument is negative
@@ -974,15 +1004,18 @@ bool rowsOk(vector<long>& plan) {
 				}
 			}
 	// Check if a team plays itself
+	
+	//cout << " Plays itself? ";
 	for (int i = 0; i < n; i++)
 		for (int j = 0; j < 2 * m; j++) {
 			//cout << "\nIs " << plan[i * 2 * m + j] << " or " << -plan[i * 2 * m + j] << " equal to " << i+1 << "?";
 			if (plan[i * 2 * m + j] == i + 1 || -plan[i * 2 * m + j] == i + 1) {
-				//cout << " Team plays itself!";										<--- Bug: If there is a cout somewhere in here, it works fine, otherwise not........
+				//cout << " Team plays itself!";										//<--- Bug: If there is a cout somewhere in here, it works fine, otherwise not........
 				return false;
 			}
 		}
 	return true;
+
 }
 
 // Returns false, if there are 2 breaks (3 elements with the same sign) in a row

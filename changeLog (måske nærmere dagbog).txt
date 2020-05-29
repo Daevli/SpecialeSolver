@@ -391,9 +391,13 @@ v. 0.5.2 --- (27-05-2020)
   - Der er et problem med rowsOk() (bug). Hvis der er et cout i metoden, fungerer den fint, men hvis der ikke er, siger den, at initialløsningen ikke er feasible
 	(se bugList)
 
-
-
-
+v. 0.5.3 --- (29-05-2020)
+ = Fase 3 =
+  - Er så småt begyndt på tabu search. Jeg tror dog det er noget nemmere at implementere simulated annealing, sådan som min kode er nu...
+ = Hjælpemetoder/Refaktorisering =
+  - Har fjernet (udkommenteret) parametren i firstAccept...(), så den nu prøver alle fire neighborhoods inden den giver op (hvis en af dem giver bedre, starter
+	den forfra). 
+  - basicLocalSearch() virker nu som ønsket. Computeringstiden er OK (16 hold: 450ms, 32 hold: 33700ms) selvom den går igennem flere neighborhoods.
 
 
 
