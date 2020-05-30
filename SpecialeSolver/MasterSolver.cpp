@@ -425,36 +425,38 @@ int main() {
 		env.end();
 	}
 	else {
-	/*
-		// Randomized (Er det en god løsning?)
-		// Overvej: Siden den fylder ind som en vektor, gælder breaks <= 1 også i overgangen mellem rækker. 
-		//  Det udelukker eksempelvis løsninger hvor et hold spiller ude de sidste to runder, og det næste 
-		//  hold spiller ude første runde
-		cout << "No problem-specific location constraints. \nGenerating a randomized pattern...\n";
-		long t;
-		srand(time(NULL));
-		for (int i = 0; i < n*m; i++) {
-			t = rand() % 2;
-			if (t == 0) {
-				t = -1;
-			}
-			if (M2[i] == 0) {
-				
-				if (M2[i - 1] == t && M2[i - 2] == t) {
-					M2[i] = -t;
-					M2[(M1[i] - 1) * m + (i % m)] = t;
+		/*
+			// Randomized (Er det en god løsning?)
+			// Overvej: Siden den fylder ind som en vektor, gælder breaks <= 1 også i overgangen mellem rækker.
+			//  Det udelukker eksempelvis løsninger hvor et hold spiller ude de sidste to runder, og det næste
+			//  hold spiller ude første runde
+			cout << "No problem-specific location constraints. \nGenerating a randomized pattern...\n";
+			long t;
+			srand(time(NULL));
+			for (int i = 0; i < n*m; i++) {
+				t = rand() % 2;
+				if (t == 0) {
+					t = -1;
 				}
-				else {
-					M2[i] = t;
-					M2[(M1[i] - 1) * m + (i % m)] = -t;
+				if (M2[i] == 0) {
+
+					if (M2[i - 1] == t && M2[i - 2] == t) {
+						M2[i] = -t;
+						M2[(M1[i] - 1) * m + (i % m)] = t;
+					}
+					else {
+						M2[i] = t;
+						M2[(M1[i] - 1) * m + (i % m)] = -t;
+					}
 				}
 			}
-		}
-	*/
-		
+		*/
+
 		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)\n";
 		// Canonical pattern (modified)
 		for (int i = 0; i < m; i++) {
+
+			/*
 			for (int k = 1; k < n - 1; k++) {
 				if (k % 2 == 0) {
 					M2[((i - k) % (n - 1)) * m + i] = 1;
@@ -465,6 +467,7 @@ int main() {
 					M2[((M1[((i + k) % (n - 1)) * m + i] - 1) % (n - 1)) * m + i] = -1;
 				}
 			}
+			/*
 			if (i % 2 == 0 && i <= m - 4) {
 				M2[(n - 1) * m + i] = -1;
 				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
@@ -481,8 +484,48 @@ int main() {
 				M2[(n - 1) * m + i] = -1;
 				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
 			}
+			*/
+			//---------------------------------------------------------------------------
+
+			
+			if (i % 2 == 0) {
+				for (int k = 1; k < n - 1; k++) {
+					if (k % 2 == 0) {
+						M2[(M1[modMod(i - k, n - 1) * m + i] - 1) * m + i] = 1;
+						M2[(M1[modMod(M1[modMod(i - k, n - 1) * m + i] - 1, n - 1) * m + i] - 1) * m + i] = -1;
+					}
+					else {
+						M2[(M1[modMod(i + k, n - 1) * m + i] - 1) * m + i] = 1;
+						M2[(M1[modMod(M1[modMod(i + k, n - 1) * m + i] - 1, n - 1) * m + i] - 1) * m + i] = -1;
+					}
+				}
+			}
+			
+
+
+			if (i % 2 == 0 && i <= m - 4) {
+				M2[(M1[i * m + i] - 1) * m + i] = -1;
+				M2[(M1[(M1[i * m + i] - 1) * m + i] - 1) * m + i] = 1;
+			}
+			if (i % 2 == 0 && i > m - 4) {
+				M2[(M1[i * m + i] - 1) * m + i] = 1;
+				M2[(M1[(M1[i * m + i] - 1) * m + i] - 1) * m + i] = -1;
+			}
+			if (i % 2 != 0 && i <= m - 4) {
+				M2[(M1[i * m + i] - 1) * m + i] = 1;
+				M2[(M1[(M1[i * m + i] - 1) * m + i] - 1) * m + i] = -1;
+			}
+			if (i % 2 != 0 && i > m - 4) {
+				M2[(M1[i * m + i] - 1) * m + i] = -1;
+				M2[(M1[(M1[i * m + i] - 1) * m + i] - 1) * m + i] = 1;
+			}
+
+
+
 		}
 	}
+
+	
 
 	// Extends the plan to a full DRR tournament
 	vector<long> M2_2 (n * 2 * m);
