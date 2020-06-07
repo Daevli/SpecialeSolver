@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.5.3
+// Version: 0.6.0
 // ---------------------------------
 
 #include <iostream>
@@ -37,6 +37,7 @@ vector<long> M3;
 int main();
 
 // Declare refactoring methods
+vector<vector<long>> convertVectorOneToTwoDimensions(vector<long> v, int rows, int cols);
 void printMat(vector<long> &arr, int n, int m);
 void swapRounds(vector<long> &mat, int k, int l);
 void swapRows(vector<long> &mat, int k, int l);
@@ -232,7 +233,10 @@ int main() {
 	/*****************************************************************************************************************************/
 	/*******************************************************| Phase 2: CP |*******************************************************/
 	/***********************************************/ cout << "\n\n--- Phase 2:\n";/**********************************************/
-	M2.resize(n * m);
+	M2.resize(n * m);	
+	vector<long> M2_2(n * 2 * m);
+	M2_2.resize(n * 2 * m);
+
 
 	if (doPhaseTwo) {
 		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
@@ -425,76 +429,125 @@ int main() {
 		env.end();
 	}
 	else {
-	/*
-		// Randomized (Er det en god løsning?)
-		// Overvej: Siden den fylder ind som en vektor, gælder breaks <= 1 også i overgangen mellem rækker. 
-		//  Det udelukker eksempelvis løsninger hvor et hold spiller ude de sidste to runder, og det næste 
-		//  hold spiller ude første runde
-		cout << "No problem-specific location constraints. \nGenerating a randomized pattern...\n";
-		long t;
-		srand(time(NULL));
-		for (int i = 0; i < n*m; i++) {
-			t = rand() % 2;
-			if (t == 0) {
-				t = -1;
-			}
-			if (M2[i] == 0) {
-				
-				if (M2[i - 1] == t && M2[i - 2] == t) {
-					M2[i] = -t;
-					M2[(M1[i] - 1) * m + (i % m)] = t;
+		if (doPhaseOne) {
+			cout << "No problem-specific hard constraints in phase 2. \nUsing modified canonical pattern by de Werra (1981) to find the canonical tournament plan\n";
+			// Canonical pattern (modified)
+			for (int i = 0; i < m; i++) {
+				for (int k = 1; k < n - 1; k++) {
+					if (k % 2 == 0) {
+						M2[((i - k) % (n - 1)) * m + i] = 1;
+						M2[((M1[((i - k) % (n - 1)) * m + i] - 1) % (n - 1)) * m + i] = -1;
+					}
+					else {
+						M2[((i + k) % (n - 1)) * m + i] = 1;
+						M2[((M1[((i + k) % (n - 1)) * m + i] - 1) % (n - 1)) * m + i] = -1;
+					}
 				}
-				else {
-					M2[i] = t;
-					M2[(M1[i] - 1) * m + (i % m)] = -t;
+				if (i % 2 == 0 && i <= m - 4) {
+					M2[(n - 1) * m + i] = -1;
+					M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
+				}
+				if (i % 2 == 0 && i > m - 4) {
+					M2[(n - 1) * m + i] = 1;
+					M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
+				}
+				if (i % 2 != 0 && i <= m - 4) {
+					M2[(n - 1) * m + i] = 1;
+					M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
+				}
+				if (i % 2 != 0 && i > m - 4) {
+					M2[(n - 1) * m + i] = -1;
+					M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
 				}
 			}
 		}
-	*/
-		
-		cout << "No problem-specific location constraints. \nUsing modified canonical pattern by de Werra (1981)\n";
-		// Canonical pattern (modified)
-		for (int i = 0; i < m; i++) {
-			for (int k = 1; k < n - 1; k++) {
-				if (k % 2 == 0) {
-					M2[((i - k) % (n - 1)) * m + i] = 1;
-					M2[((M1[((i - k) % (n - 1)) * m + i] - 1) % (n - 1)) * m + i] = -1;
-				}
-				else {
-					M2[((i + k) % (n - 1)) * m + i] = 1;
-					M2[((M1[((i + k) % (n - 1)) * m + i] - 1) % (n - 1)) * m + i] = -1;
+		else {
+			std::cout << "No problem-specific hard constraints concerning location. \nUsing the super-duper-mega-cool algorithm by me::: - Johan!\n";
+			vector<vector<long>> tempM2 = convertVectorOneToTwoDimensions(M2_2, n, 2 * m);
+
+			// First step: Fill out the first column and the first column in the second half
+			for (int i = 0; i < n; i++) {
+				if (tempM2[i][0] == 0) {
+					tempM2[i][0] = 1;
+					tempM2[M1[i * m] - 1][0] = -1;
+					tempM2[i][m] = -1;
+					tempM2[M1[i * m] - 1][m] = 1;
 				}
 			}
-			if (i % 2 == 0 && i <= m - 4) {
-				M2[(n - 1) * m + i] = -1;
-				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
+			cout << "\nHas filled in the first column";
+			// Second step: Find the next empty entry and fill in the opposite value of the one to the left...::: (and the opponent and the second half)
+			for (int j = 1; j < m; j++) {
+				for (int i = 0; i < n; i++) {
+					if (tempM2[i][j] == 0) {
+						if (tempM2[i][j - 1] == -1) {
+							tempM2[i][j] = 1;
+							tempM2[M1[i * m + j] - 1][j] = -1;
+							tempM2[i][j + m] = -1;
+							tempM2[M1[i * m + j] - 1][j + m] = 1;
+						}
+						if (tempM2[i][j - 1] == 1) {
+							tempM2[i][j] = -1;
+							tempM2[M1[i * m + j] - 1][j] = 1;
+							tempM2[i][j + m] = 1;
+							tempM2[M1[i * m + j] - 1][j + m] = -1;
+						}
+						// Third step: Search for fires
+						for (int k = 0; k < n; k++)	{
+							for (int l = 0; l < 2 * m - 2; l++)	{
+								// Fourth step: Put out fire and reset indices
+								if (tempM2[k][l] + tempM2[k][l + 1] + tempM2[k][l + 2] == 2) {
+									cout << "\nFire found: positive ";
+									for (int h = 0; h < 3; h++) {
+										if (tempM2[k][l + h] == 0) {
+											tempM2[k][l + h] = -1;
+											tempM2[M1[k * m + (l + h) % m] - 1][l + h] = 1;
+											tempM2[k][l + h + m] = 1;
+											tempM2[M1[k * m + (l + h) % m] - 1][l + h + m] = -1;
+										}
+									}
+									k = 0;
+									l = 0;
+								}
+								if (tempM2[k][l] + tempM2[k][l + 1] + tempM2[k][l + 2] == -2) {
+									cout << "\nFire found: negative ";
+									for (int h = 0; h < 3; h++) {
+										if (tempM2[k][l + h] == 0) {
+											tempM2[k][l + h] = 1;
+											tempM2[M1[k * m + (l + h) % m] - 1][l + h] = -1;
+											tempM2[k][l + h + m] = -1;
+											tempM2[M1[k * m + (l + h) % m] - 1][l + h + m] = 1;
+										}
+									}
+									k = 0;
+									l = 0;
+								}
+							}
+						}
+					}
+				}
 			}
-			if (i % 2 == 0 && i > m - 4) {
-				M2[(n - 1) * m + i] = 1;
-				M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
+			// Fill in M2_2
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < 2 * m; j++) {
+					M2_2[i * 2 * m + j] = tempM2[i][j];
+				}
 			}
-			if (i % 2 != 0 && i <= m - 4) {
-				M2[(n - 1) * m + i] = 1;
-				M2[(M1[(n - 1) * m + i] - 1) * m + i] = -1;
-			}
-			if (i % 2 != 0 && i > m - 4) {
-				M2[(n - 1) * m + i] = -1;
-				M2[(M1[(n - 1) * m + i] - 1) * m + i] = 1;
-			}
+
+
+
 		}
 	}
 
-	// Extends the plan to a full DRR tournament
-	vector<long> M2_2 (n * 2 * m);
-	M2_2.resize(n * 2 * m);
-
-	for (int k = 0; k < n; ++k) {
-		for (int i = 0; i < m; i++) {
-			temp[i] = M2[i + m * k];
-		}
-		for (int j = 0; j < m; j++) {
-			M2_2[j + m * (2 * k)] = temp[j];
-			M2_2[j + m * (2 * k + 1)] = -temp[j];
+	if (doPhaseTwo || doPhaseOne) {
+		// Extends the plan to a full DRR tournament
+		for (int k = 0; k < n; ++k) {
+			for (int i = 0; i < m; i++) {
+				temp[i] = M2[i + m * k];
+			}
+			for (int j = 0; j < m; j++) {
+				M2_2[j + m * (2 * k)] = temp[j];
+				M2_2[j + m * (2 * k + 1)] = -temp[j];
+			}
 		}
 	}
 
@@ -714,6 +767,19 @@ int flipOneAndZero(int t) {
 		return 0;
 	}
 	return 0;
+}
+
+// Returns a 2-dimensional version of the given 1-dimensional vector
+vector<vector<long>> convertVectorOneToTwoDimensions(vector<long> v, int rows, int cols) {
+	vector<vector<long>> temp;
+	temp.resize(rows);
+	for (int i = 0; i < rows; i++) {
+		temp[i].resize(cols);
+		for (int j = 0; j < cols; j++) {
+			temp[i][j] = v[i * cols + j];
+		}
+	}
+	return temp;
 }
 
 

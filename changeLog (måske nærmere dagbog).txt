@@ -399,7 +399,12 @@ v. 0.5.3 --- (29-05-2020)
 	den forfra). 
   - basicLocalSearch() virker nu som ønsket. Computeringstiden er OK (16 hold: 450ms, 32 hold: 33700ms) selvom den går igennem flere neighborhoods.
 
-
+v. 0.6.0 --- (07-06-2020)
+ = Fase 2 = 
+  - Har fjernet koden som laver en random løsning
+  - Har implementeret min egen algoritme, som bruges, når der er bibetingelser i fase 1, men ingen i fase 2.
+ = Hjælpemetoder/Refaktorisering =
+  - Har tilføjet convertVectorOneToTwoDimensions(), som laver en 1-dimensional vektor om til 2 dimensioner
 
 
 
