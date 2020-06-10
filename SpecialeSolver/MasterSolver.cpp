@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.6.0
+// Version: 0.6.1
 // ---------------------------------
 
 #include <iostream>
@@ -33,6 +33,7 @@ vector<int> bannedRounds;		// Vector describing which rounds are not allowed in 
 vector<long> M1;
 vector<long> M2;
 vector<long> M3;
+vector<vector<int>> costMatrix;
 
 int main();
 
@@ -83,7 +84,7 @@ int main() {
 	if (doPhaseTwo) {
 		cout << "Will search for hard constriants in hardConstraints.txt file.\n";
 	}
-	else { cout << "No hard constraints. Using modified canonical pattern... Or maybe randomized pattern... We'll see...\n"; }
+	else { cout << "No hard constraints. Using modified canonical pattern...\n"; }
 
 	auto start = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/
@@ -429,7 +430,7 @@ int main() {
 		env.end();
 	}
 	else {
-		if (doPhaseOne) {
+		if (!doPhaseOne) {
 			cout << "No problem-specific hard constraints in phase 2. \nUsing modified canonical pattern by de Werra (1981) to find the canonical tournament plan\n";
 			// Canonical pattern (modified)
 			for (int i = 0; i < m; i++) {
@@ -538,7 +539,7 @@ int main() {
 		}
 	}
 
-	if (doPhaseTwo || doPhaseOne) {
+	if (doPhaseTwo || !doPhaseOne) {
 		// Extends the plan to a full DRR tournament
 		for (int k = 0; k < n; ++k) {
 			for (int i = 0; i < m; i++) {
@@ -570,8 +571,48 @@ int main() {
 
 	printMat(M3, n, 2 * m);
 
+	// Read costs file 
+	string line;
+	int f;
+	int constraintCode;
+	int round;
+	long team1;
+	long team2;
+	vector<int> v;
+	ifstream myFile("costs.txt");
+
+	if (myFile.is_open()) {
+		std::cout << "\n\nFound costs: ";
+		while (getline(myFile, line)) {			// Read string
+			stringstream ss(line);				// Make stringstream from s
+			v.clear();							// Clear vector v
+			while (ss >> f) {					// Read ints from ss into f
+				v.push_back(f);					// Add these to vector
+			}
+			switch (v[0]) {
+			case 1: std::cout << "\nSoft constraint s1: Team " << v[1] << " and " << v[2] << " have a cost of " << v[3] << " if they play home at the same time.";
+				break;
+			case 2: std::cout << "\nSoft constraint s2: A cost of " << v[3] << " if team " << v[1] << " plays home in round " << v[2];
+				break;
+			case 3: std::cout << "\nSoft constraint s3: A cost of " << v[4] << " if team " << v[1] << " and team " << v[2] << " play in round " << v[3];
+				break;
+			default:
+				break;
+			}
+			costMatrix.push_back(v);
+		}
+		myFile.close();
+		std::cout << "\nIn addition, costs are added for each break in the tournament and soft constraint s4.";
+	}
+	else { cout << "Error while trying to open file!"; }
+
+
+
+
 	basicLocalSearch(M3);
 
+
+	std::cout << "\nSolution feasible: " << isFeasible(M3);
 	int t = 0;
 	// Print elapsed time
 	if (doPhaseOne) { t = 700; }
@@ -827,10 +868,11 @@ void swapTeams(vector<long> &mat, int k, int l) {
 }
 
 // Returns the costs for a tournament plan as defined by a .txt file
-long cost(vector<long> &plan) {
+long cost(vector<long>& plan) {
+	/*
 	long cost = 0;
-	
-	// Read file 
+
+	// Read file
 	string line;
 	string H;
 	int f;
@@ -840,14 +882,13 @@ long cost(vector<long> &plan) {
 	long team2;
 	vector<int> v;
 	ifstream myFile("costs.txt");
-	/*
 	if (myFile.is_open()) {
 		cout << "\n\nFound constraints: ";
-		while (getline(myFile, line)) {			// Read string 
-			stringstream ss(line);				// Make stringstream from s 
+		while (getline(myFile, line)) {			// Read string
+			stringstream ss(line);				// Make stringstream from s
 			v.clear();							// Clear vector v
-			while (ss >> f) {					// Read ints from ss into f 
-				v.push_back(f);					// Add these to vector 
+			while (ss >> f) {					// Read ints from ss into f
+				v.push_back(f);					// Add these to vector
 			}
 			constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
 			switch (constraintCode) {
@@ -855,7 +896,7 @@ long cost(vector<long> &plan) {
 				team1 = v.operator[](1) - 1;
 				team2 = v.operator[](2) - 1;
 				for (int i = 0; i < 2*m; i++) {
-					if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i]) 
+					if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i])
 						&& !isNegative(plan[team2 * n + i])) {
 						cost += v.operator[](3);
 					}
@@ -885,51 +926,70 @@ long cost(vector<long> &plan) {
 	else { cout << "Error while trying to open file!"; }
 	*/
 
-	// Test costs
-		// Soft constraint s1
-		team1 = 1 - 1 ;
-		team2 = n;
-		for (int i = 0; i < 2 * m; i++) {
-			if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i])
-				&& !isNegative(plan[team2 * n + i])) {
-				cost += 100000;
+
+	long cost = 0;
+	int constraintCode = 0;
+	int round = 0;
+	long team1 = 0;
+	long team2 = 0;
+
+	for (int i = 0; i < costMatrix.size(); i++) {
+		constraintCode = costMatrix[i][0];
+		switch (constraintCode) {
+		case 1:	// Soft constraint s1
+			team1 = costMatrix[i][1] - 1;
+			team2 = costMatrix[i][2] - 1;
+			for (int j = 0; j < 2 * m; j++) {
+				if (isNegative(plan[team1 * 2 * m + j]) == isNegative(plan[team2 * n + j])
+					&& !isNegative(plan[team2 * n + j])) {
+					cost += costMatrix[i][3];
+				}
+			}
+			break;
+		case 2: // Soft constraint s2
+			team1 = costMatrix[i][1] - 1;
+			round = costMatrix[i][2] - 1;
+			if (!isNegative(plan[team1 * 2 * m + round])) {
+				cost += costMatrix[i][3];
+			}
+			break;
+		case 3: // Soft constraint s3
+			team1 = costMatrix[i][1] - 1;
+			team2 = costMatrix[i][2] - 1;
+			round = costMatrix[i][3] - 1;
+			if (plan[team1 * 2 * m + round] == team2 || plan[team1 * 2 * m + round] == -team2) {
+				cost += costMatrix[i][4];
+			}
+			break;
+		default:
+			break;
+		}
+
+		// Costs for each break in the plan.
+		for (int i = 0; i < plan.size() - 1; i++) {
+			if (isNegative(plan[i]) == isNegative(plan[i + 1])) {
+				cost += 50;
 			}
 		}
-		
-		// Soft constraint s2
-		team1 = 3 - 1;
-		round = 3 - 1;
-		if (!isNegative(plan[team1 * 2 * m + round])) {
-			cost += 5000;
-		}
 
-		 // Soft constraint s3
-		team1 = 4-1;
-		team2 = 14;
-		round = 1 - 1;
-		if (plan[team1 * 2 * m + round] == team2 || plan[team1 * 2 * m + round] == -team2) {
-			cost += 13000;
-		}
-
-
-
-	// Soft constraint s4 should always be in place
-	long ms;
-	long smallest;
-	for (int col = 0; col < 2 * m; col++)	{
-		smallest = 10000;
-		for (int row = 0; row < n; row++) {
-			ms = (plan[row * 2 * m + col]) * (row + 1);
-			if(isNegative(ms)) {
-				ms = -ms;
+		// Soft constraint s4 should always be in place
+		long ms;
+		long smallest;
+		for (int col = 0; col < 2 * m; col++) {
+			smallest = 10000;
+			for (int row = 0; row < n; row++) {
+				ms = (plan[row * 2 * m + col]) * (row + 1);
+				if (isNegative(ms)) {
+					ms = -ms;
+				}
+				if (ms < smallest) {
+					smallest = ms;
+				}
 			}
-			if (ms < smallest) {
-				smallest = ms;
-			}
+			cost += smallest;
 		}
-		cost += smallest;
+		return cost;
 	}
-	return cost;
 }
 
 // Returns the first improving neighbor (first accept) to a given tournament plan
@@ -1009,7 +1069,7 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 
 // Uses first-accept to do a greedy local search
 void basicLocalSearch(vector<long>& plan) {
-	cout << "\n=== Basic local search (greedy)!\nInitial solution:";
+	cout << "\n\n=== Basic local search (greedy)!\nInitial solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\nWith a cost of: " << cost(plan) << "\n";
 	int iteration = 0;

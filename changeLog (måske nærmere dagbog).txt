@@ -406,6 +406,12 @@ v. 0.6.0 --- (07-06-2020)
  = Hjælpemetoder/Refaktorisering =
   - Har tilføjet convertVectorOneToTwoDimensions(), som laver en 1-dimensional vektor om til 2 dimensioner
 
+v. 0.6.1 --- (10-06-2020)
+ = Fase 3 = 
+  - Har ændret i omkostningerne, så den kun læser costs.txt én gang og derefter gemmer dem i vector<vector>> costMatrix. 
+  - Har tilføjet et udprint til sidst, som fortæller om løsningen er feasible (På grund af en dum bug med canonical)
+ = Hjælpemetoder/Refaktorisering =
+  - Har fjernet test-omkostningerne
 
 
 

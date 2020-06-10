@@ -1,19 +1,9 @@
 ACTIVE
 => Modified canonical pattern giver nogle gange ikke en feasible løsning (flere end 3 1'ere eller -1'ere i streg)
    -> Det sker nogle gange "efter en lang dag"
+   -> Sker oftere og oftere :'(
    -> Problemet kan løses ved at genstarte IDE'en... (cache-problem?)
-
-=> Når latin square bruges, kan canonical pattern ikke regne rigtigt. 
-   -> Der er nogle indgange der bliver til 0.
-   -> Der er flere 1'ere og -1'ere i streg, end det er tilladt.
-   -> Hvis der køres Cplex, fungerer det fint.
-   -> Fungerer fint med cirkelalgoritmen
-
-=> Koden der genererer random H/A pattern giver nogle gange 3 1'ere eller -1'ere i streg når n >= 8.
-
-=> Anden del af rowsOk(), hvor der tjekkes om holdene spiller mod sig selv siger, at initialløsningen ikke er feasible.
-   -> Hvis der indsættes et cout i metoden, fungerer det.
-   -> Ved udkommentering er det tydeligt, at det er denne del af metoden den er gal med.
+   -> Kan nogle gange også løses ved at køre koden igen
 
 SOLVED
 => M3 bliver ikke regnet ordenligt for n >= 10
