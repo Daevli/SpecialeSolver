@@ -413,7 +413,13 @@ v. 0.6.1 --- (10-06-2020)
  = Hjælpemetoder/Refaktorisering =
   - Har fjernet test-omkostningerne
 
-
+v. 0.7.0 --- (11-06-2020)
+ = Fase 3 = 
+  - Små ændringer i udskrift af bløde bibetingelser
+ = Hjælpemetoder/Refaktorisering =
+  - firstAcceptNei...() havde omvendt n og m, så den ikke itererede igennem alle rækker og en søjle for meget. Det er rettet.
+  - tabuSearch() er tilføjet. Der mangler de 2 store neighborhoods: p1-p2 og p2-p1, men heuristikken fungerer umiddelbart som den skal.
+	Der skal tilføjes flere omkostninger, siden den hurtigt finder en optimal løsning.
 
 
 
