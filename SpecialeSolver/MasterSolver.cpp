@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 0.7.0
+// Version: 1.0.0
 // ---------------------------------
 
 #include <iostream>
@@ -603,11 +603,11 @@ int main() {
 		myFile.close();
 		std::cout << "\nIn addition, costs are added for each break in the tournament and soft constraint s4.";
 	}
-	else { cout << "Error while trying to open file!"; }
+	else { std::cout << "Error while trying to open file!"; }
 
 
-	tabuSearch(M3, 1000);
-	// basicLocalSearch(M3);
+	basicLocalSearch(M3);
+	tabuSearch(M3, 50);
 
 
 	std::cout << "\nSolution feasible: " << isFeasible(M3);
@@ -615,7 +615,7 @@ int main() {
 	// Print elapsed time
 	if (doPhaseOne) { t = 700; }
 	auto end = chrono::steady_clock::now();
-	cout << "\n\nElapsed time: "
+	cout << "\n---\nElapsed time: "
 		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count()-t << " ms"
 		<< "\n" << "Phase 2: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseTwo - postPhaseOne).count() << " ms"
 		<< "\n" << "Phase 3: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - postPhaseTwo).count() << " ms\n---"
@@ -867,64 +867,6 @@ void swapTeams(vector<long> &mat, int k, int l) {
 
 // Returns the costs for a tournament plan as defined by a .txt file
 long cost(vector<long>& plan) {
-	/*
-	long cost = 0;
-
-	// Read file
-	string line;
-	string H;
-	int f;
-	int constraintCode;
-	int round;
-	long team1;
-	long team2;
-	vector<int> v;
-	ifstream myFile("costs.txt");
-	if (myFile.is_open()) {
-		cout << "\n\nFound constraints: ";
-		while (getline(myFile, line)) {			// Read string
-			stringstream ss(line);				// Make stringstream from s
-			v.clear();							// Clear vector v
-			while (ss >> f) {					// Read ints from ss into f
-				v.push_back(f);					// Add these to vector
-			}
-			constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
-			switch (constraintCode) {
-			case 1:	// Soft constraint s1
-				team1 = v.operator[](1) - 1;
-				team2 = v.operator[](2) - 1;
-				for (int i = 0; i < 2*m; i++) {
-					if (isNegative(plan[team1 * 2 * m + i]) == isNegative(plan[team2 * n + i])
-						&& !isNegative(plan[team2 * n + i])) {
-						cost += v.operator[](3);
-					}
-				}
-				break;
-			case 2: // Soft constraint s2
-				team1 = v.operator[](1) - 1;
-				round = v.operator[](2) - 1;
-				if (!isNegative(plan[team1 * 2 * m + round])) {
-					cost += v.operator[](3);
-				}
-				break;
-			case 3: // Soft constraint s3
-				team1 = v.operator[](1) - 1;
-				team2 = v.operator[](2) - 1;
-				round = v.operator[](3) - 1;
-				if (plan[team1 * 2 * m + round] == team2 || plan[team1 * 2 * m + round] == -team2) {
-					cost += v.operator[](4);
-				}
-				break;
-			default:
-				break;
-			}
-		}
-		myFile.close();
-	}
-	else { cout << "Error while trying to open file!"; }
-	*/
-
-
 	long cost = 0;
 	int constraintCode = 0;
 	int round = 0;
@@ -939,7 +881,7 @@ long cost(vector<long>& plan) {
 			team2 = costMatrix[i][2] - 1;
 			for (int j = 0; j < 2 * m; j++) {
 				if (isNegative(plan[team1 * 2 * m + j]) == isNegative(plan[team2 * n + j])
-					&& !isNegative(plan[team2 * n + j])) {
+					&& !isNegative(plan[team1 * n + j])) {
 					cost += costMatrix[i][3];
 				}
 			}
@@ -962,7 +904,7 @@ long cost(vector<long>& plan) {
 		default:
 			break;
 		}
-
+	}
 		// Costs for each break in the plan.
 		for (int i = 0; i < plan.size() - 1; i++) {
 			if (isNegative(plan[i]) == isNegative(plan[i + 1])) {
@@ -986,8 +928,7 @@ long cost(vector<long>& plan) {
 			}
 			cost += smallest;
 		}
-		return cost;
-	}
+	return cost;
 }
 
 // Returns the first improving neighbor (first accept) to a given tournament plan
@@ -1083,15 +1024,17 @@ void basicLocalSearch(vector<long>& plan) {
 void tabuSearch(vector<long>& plan, int tolerence) {
 	cout << "\n\n=== Tabu search === \nInitial solution:";
 	printMat(plan, n, 2 * m);
-	cout << "\nWith a cost of: " << cost(plan) << "\n";
+	cout << "\nWith a cost of: " << cost(plan) << "\n" << "Doing tabu search";
 	int fail = 0;
 	int iteration = 0;
 	int a = 100000;
 	int b = 1000;
+	int c = 10000;
+	int d = 100000;
 	int t = n / 2;
 	vector<int> teamTabuList;
 	vector<int> roundTabuList;
-	// vector<long> originalSolution = plan;
+	vector<long> originalSolution = plan;
 	vector<long> tempNabo = plan;
 	vector<long> bestNabo = plan;
 	vector<long> optimalSolution = plan; // (or near-optimal)
@@ -1100,6 +1043,8 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 		iteration++;
 		a = 100000;
 		b = 100000;
+		c = 100000;
+		d = 100000;
 		// Reset initial solution to the best solution from the last iteration
 		plan = bestNabo;
 		tempNabo = bestNabo;
@@ -1107,7 +1052,9 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 		// Reset the best neighbor to the original solution
 		bestNabo = originalSolution;
 
-		switch (iteration % 4) {
+		int switcheroo = 0;
+		switcheroo = iteration % 4;
+		switch (switcheroo) {
 		case 0: // move p1: switch rounds
 			for (int i = 0; i < m - 1; i++) {
 				if (std::find(roundTabuList.begin(), roundTabuList.end(), i) == roundTabuList.end()) {
@@ -1139,40 +1086,142 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 			}
 			break;
 		case 1: // move p2: switch teams
-			for (int i = 0; i < n - 1; i++)	{
-				if (std::find(teamTabuList.begin(), teamTabuList.end(), i) == teamTabuList.end()) {
-					for (int j = i + 1; j < n; j++) {
-						if (std::find(teamTabuList.begin(), teamTabuList.end(), j) == teamTabuList.end()) {
-							swapTeams(tempNabo, i, j); // Swap two teams, since neither are on the tabulist
+			for (int k = 0; k < n - 1; k++)	{
+				if (std::find(teamTabuList.begin(), teamTabuList.end(), k) == teamTabuList.end()) {
+					for (int l = k + 1; l < n; l++) {
+						if (std::find(teamTabuList.begin(), teamTabuList.end(), l) == teamTabuList.end()) {
+							swapTeams(tempNabo, k, l); // Swap two teams, since neither are on the tabulist
 							if (cost(tempNabo) < cost(bestNabo) && isFeasible(tempNabo)) {
 								bestNabo = tempNabo; // If the cost is better than the best neighbor so far, save it as the new best neighbor
-								a = i; // save the two teams that were swapped
-								b = j;
+								c = k; // save the two teams that were swapped
+								d = l;
 							}
-							swapTeams(tempNabo, i, j); // swap back, so we are in the same neighborhood
+							swapTeams(tempNabo, k, l); // swap back, so we are in the same neighborhood
 						}
 					}
 				}
 			}
 			// Update tabuList
-			if (std::find(teamTabuList.begin(), teamTabuList.end(), a) != teamTabuList.end()) {
-				teamTabuList.push_back(a); // If a is not in the tabulist, add it
+			if (std::find(teamTabuList.begin(), teamTabuList.end(), c) != teamTabuList.end()) {
+				teamTabuList.push_back(c); // If c is not in the tabulist, add it
 			}
 			if (teamTabuList.size() > t) {
 				teamTabuList.erase(teamTabuList.begin()); // If the tabuList is too big, remove the first element
 			}
-			if (std::find(teamTabuList.begin(), teamTabuList.end(), b) != teamTabuList.end()) {
-				teamTabuList.push_back(b); // Same for b
+			if (std::find(teamTabuList.begin(), teamTabuList.end(), d) != teamTabuList.end()) {
+				teamTabuList.push_back(d); // Same for d
 			}
 			if (teamTabuList.size() > t) {
 				teamTabuList.erase(teamTabuList.begin()); // If the tabuList is too big, remove the first element
 			}
 			break;
-		case 3: // move p1-p2
-
+		case 2: // move p1-p2
+			for (int i = 0; i < m - 1; i++) {
+				if (std::find(roundTabuList.begin(), roundTabuList.end(), i) == roundTabuList.end()) {
+					for (int j = i + 1; j < m; j++) {
+						if (std::find(roundTabuList.begin(), roundTabuList.end(), j) == roundTabuList.end()) {
+							for (int k = 0; k < n - 1; k++) {
+								if (std::find(teamTabuList.begin(), teamTabuList.end(), k) == teamTabuList.end()) {
+									for (int l = k + 1; l < n; l++) {
+										if (std::find(teamTabuList.begin(), teamTabuList.end(), l) == teamTabuList.end()) {
+											swapRounds(tempNabo, i, j);
+											swapTeams(tempNabo, k, l); // Swap two teams, since neither are on the tabulist
+											if (cost(tempNabo) < cost(bestNabo) && isFeasible(tempNabo)) {
+												bestNabo = tempNabo; // If the cost is better than the best neighbor so far, save it as the new best neighbor
+												a = i; 
+												b = j;
+												c = k;
+												d = l;
+											}
+											swapTeams(tempNabo, k, l); // swap back, so we are in the same neighborhood
+											swapRounds(tempNabo, i, j);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			// Update tabuList
+			if (std::find(roundTabuList.begin(), roundTabuList.end(), a) != roundTabuList.end()) {
+				roundTabuList.push_back(a); // If a is not in the tabulist, add it
+			}
+			if (roundTabuList.size() > t) {
+				roundTabuList.erase(roundTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
+			if (std::find(roundTabuList.begin(), roundTabuList.end(), b) != roundTabuList.end()) {
+				roundTabuList.push_back(b); // Same for b
+			}
+			if (roundTabuList.size() > t) {
+				roundTabuList.erase(roundTabuList.begin()); // If the tabuList is too big, remove the first element
+			}			
+			if (std::find(teamTabuList.begin(), teamTabuList.end(), c) != teamTabuList.end()) {
+				teamTabuList.push_back(c); // If a is not in the tabulist, add it
+			}
+			if (teamTabuList.size() > t) {
+				teamTabuList.erase(teamTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
+			if (std::find(teamTabuList.begin(), teamTabuList.end(), d) != teamTabuList.end()) {
+				teamTabuList.push_back(d); // Same for b
+			}
+			if (teamTabuList.size() > t) {
+				teamTabuList.erase(teamTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
 			break;
-		case 4: // move p2-p1
-
+		case 3: // move p2-p1
+			for (int i = 0; i < m - 1; i++) {
+				if (std::find(roundTabuList.begin(), roundTabuList.end(), i) == roundTabuList.end()) {
+					for (int j = i + 1; j < m; j++) {
+						if (std::find(roundTabuList.begin(), roundTabuList.end(), j) == roundTabuList.end()) {
+							for (int k = 0; k < n - 1; k++) {
+								if (std::find(teamTabuList.begin(), teamTabuList.end(), k) == teamTabuList.end()) {
+									for (int l = k + 1; l < n; l++) {
+										if (std::find(teamTabuList.begin(), teamTabuList.end(), l) == teamTabuList.end()) {
+											swapTeams(tempNabo, k, l);   // Swap two teams, since neither are on the tabulist
+											swapRounds(tempNabo, i, j);
+											if (cost(tempNabo) < cost(bestNabo) && isFeasible(tempNabo)) {
+												bestNabo = tempNabo; // If the cost is better than the best neighbor so far, save it as the new best neighbor
+												a = i;
+												b = j;
+												c = k;
+												d = l;
+											}
+											swapRounds(tempNabo, i, j);
+											swapTeams(tempNabo, k, l); // swap back, so we are in the same neighborhood
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			// Update tabuList
+			if (std::find(roundTabuList.begin(), roundTabuList.end(), a) != roundTabuList.end()) {
+				roundTabuList.push_back(a); // If a is not in the tabulist, add it
+			}
+			if (roundTabuList.size() > t) {
+				roundTabuList.erase(roundTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
+			if (std::find(roundTabuList.begin(), roundTabuList.end(), b) != roundTabuList.end()) {
+				roundTabuList.push_back(b); // Same for b
+			}
+			if (roundTabuList.size() > t) {
+				roundTabuList.erase(roundTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
+			if (std::find(teamTabuList.begin(), teamTabuList.end(), c) != teamTabuList.end()) {
+				teamTabuList.push_back(c); // If a is not in the tabulist, add it
+			}
+			if (teamTabuList.size() > t) {
+				teamTabuList.erase(teamTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
+			if (std::find(teamTabuList.begin(), teamTabuList.end(), d) != teamTabuList.end()) {
+				teamTabuList.push_back(d); // Same for b
+			}
+			if (teamTabuList.size() > t) {
+				teamTabuList.erase(teamTabuList.begin()); // If the tabuList is too big, remove the first element
+			}
 			break;
 		default:
 			break;
@@ -1186,11 +1235,14 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 			fail = 0;
 			optimalSolution = bestNabo;
 		}
-		
+		if (fail % 31 == 0 || fail == tolerence) {
+			std::cout << "\rOn iteration " << fail << "/" << tolerence << " with no improvement.";
+			std::cout.flush();
+		}
 	}
 	// Finally, update the tournament plan
 	plan = optimalSolution;
-	cout << "Tabu search done!\nNew solution:";
+	cout << " Tabu search done!\nNew solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\n\nWith a cost of: " << cost(plan)
 		<< "\n---\nParameters:\nTolerence for no improvement: " << tolerence
@@ -1198,7 +1250,6 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 		<< "\nNumber of iterations:         " << iteration
 		<< "\n---";
 }
-
 
 // Returns true if the argument is negative
 bool isNegative(long t) {
@@ -1259,13 +1310,4 @@ bool breaksOk(vector<long>& plan) {
 // Returns true if the tournament plan is feasible
 bool isFeasible(vector<long>& plan) {
 	return (columnsOk(plan) && rowsOk(plan) && breaksOk(plan));
-}
-
-void done() {
-	std::cout << "\n\nDDDDD    OOOO   NN  NN  EEEEEE\n";
-	    std::cout << "DDDDDD  OOOOOO  NNN NN  EEE   \n";
-	    std::cout << "DD  DD  OO  OO  NNNNNN  EEEEEE\n";
-	    std::cout << "DD  DD  OO  OO  NNNNNN  EEEEEE\n";
-	    std::cout << "DDDDDD  OOOOOO  NN NNN  EEE   \n";
-	    std::cout << "DDDDD    OOOO   NN  NN  EEEEEE\n\n";
 }
