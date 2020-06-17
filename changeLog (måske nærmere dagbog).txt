@@ -431,6 +431,9 @@ v. 1.0.0 --- (12-06-2020)
   - Har tilføjet flere bløde bibetingelser i costs.txt for at gøre det lidt mere interessant. Jeg tænker, at der skal mange flere, siden
 	local Search finder et lokalt optimum efter 20-30 iterationer og tabuSearch efter 17 iterationer.
 
+v. 1.0.1 --- (17-06-2020)
+ = Fase 2 =
+  - Har tilføjet en "fail-safe", således at hvis min algoritme skulle fejle og finde en løsning der ikke er feasible, kører den Cplex bagefter.
 
 
 
