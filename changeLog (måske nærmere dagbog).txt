@@ -435,6 +435,9 @@ v. 1.0.1 --- (17-06-2020)
  = Fase 2 =
   - Har tilføjet en "fail-safe", således at hvis min algoritme skulle fejle og finde en løsning der ikke er feasible, kører den Cplex bagefter.
 
+v. 1.1.0 --- (21-06-2020)
+ = Fase 2 = 
+  - Har implementeret Mishas algoritme og udkommenteret SDMC algoritmen. Begge har desværre sandsynlighed for at fejle...
 
 
 
