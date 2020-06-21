@@ -2,17 +2,18 @@
   MasterSolver.cpp
 C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(181,17): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
 C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(195,10): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(417,19): warning C4244: '=': conversion from 'IloNum' to '_Ty', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(601,19): warning C4244: '=': conversion from 'IloNum' to '_Ty', possible loss of data
           with
           [
               _Ty=long
           ]
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(580,7): warning C4101: 'team2': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(579,7): warning C4101: 'team1': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(577,6): warning C4101: 'constraintCode': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(578,6): warning C4101: 'round': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(655,7): warning C4101: 'team2': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(654,7): warning C4101: 'team1': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(652,6): warning C4101: 'constraintCode': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(653,6): warning C4101: 'round': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(1109,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
   Generating code
-  0 of 568 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
+  1 of 568 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
     0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code

@@ -44,7 +44,7 @@ void swapRounds(vector<long> &mat, int k, int l);
 void swapRows(vector<long> &mat, int k, int l);
 void swapNumbers(vector<long> &mat, int k, int l);
 void swapTeams(vector<long>& mat, int k, int l);
-void basicLocalSearch(vector<long> &plan);
+void variableNeighborhoodSearch(vector<long> &plan);
 void tabuSearch(vector<long>& plan, int tolerence);
 void done();
 long cost(vector<long>& plan);
@@ -274,9 +274,9 @@ int main() {
 			}
 		}
 		else {
-			std::cout << "No problem-specific hard constraints concerning location. \nUsing the super-duper-mega-cool algorithm by me::: - Johan!\n";
+			std::cout << "No problem-specific hard constraints concerning location. \nUsing the SDMC algorithm by me::: - Johan!\n";
 			vector<vector<long>> tempM2 = convertVectorOneToTwoDimensions(M2_2, n, 2 * m);
-
+			/*
 			// First step: Fill out the first column and the first column in the second half
 			for (int i = 0; i < n; i++) {
 				if (tempM2[i][0] == 0) {
@@ -287,7 +287,7 @@ int main() {
 				}
 			}
 			cout << "\nHas filled in the first column";
-			// Second step: Find the next empty entry and fill in the opposite value of the one to the left...::: (and the opponent and the second half)
+			// Second step: Find the next empty entry and fill in the negative value of the one to the left...::: (and the opponent and the second half)
 			for (int j = 1; j < m; j++) {
 				for (int i = 0; i < n; i++) {
 					if (tempM2[i][j] == 0) {
@@ -346,12 +346,83 @@ int main() {
 			}
 			// Since the algorithm has no mathematical proof, a fail-safe mechanism is added, 
 			// such that if it produces an infeasible solution, Cplex used to solve instead.
-			// Note, that this will likely never happen, but if it does, the program will
+			// Note, that this is unlikely to happen, but if it does, the program will
 			// read from the hard constraints file and enforce them
+			*/
+
+			//----------------------------------------------- Misha
+			int t = 0;
+			for (int j = 0; j < m; j += 2) {
+				for (int i = 0; i < n; i++)	{
+					if (tempM2[i][j] == 0) {
+						t = i;
+						if (tempM2[i][j + 1] == 0) {
+							while (tempM2[t][j] == 0) {
+								tempM2[t][j] = 1;
+								tempM2[t][j + 1] = -1;
+								tempM2[t][j + m] = -1;
+								tempM2[t][j + m + 1] = 1;
+								t = M1[t * m + j + 1] - 1;
+								tempM2[t][j + 1] = 1;
+								tempM2[t][j] = -1;
+								tempM2[t][j + m + 1] = -1;
+								tempM2[t][j + m] = 1;
+								t = M1[t * m + j] - 1;
+							}
+						}
+						// the last column is a special case
+						else if (isNegative(tempM2[t][j - 1]) && isNegative(tempM2[t][j + 1])) {
+							tempM2[t][j] = 1;
+							tempM2[t][j + m] = -1;
+							t = M1[t * m + j] - 1;
+							tempM2[t][j] = -1;
+							tempM2[t][j + m] = 1;
+						}
+						else if (!isNegative(tempM2[t][j - 1]) && !isNegative(tempM2[t][j + 1])) {
+							tempM2[t][j] = -1;
+							tempM2[t][j + m] = 1;
+							t = M1[t * m + j] - 1;
+							tempM2[t][j] = 1;
+							tempM2[t][j + m] = -1;
+						}
+						else if (isNegative(tempM2[M1[t * m + j] - 1][j - 1]) && isNegative(tempM2[M1[t * m + j] - 1][j + 1])) {
+							tempM2[t][j] = -1;
+							tempM2[t][j + m] = 1;
+							t = M1[t * m + j] - 1;
+							tempM2[t][j] = 1;
+							tempM2[t][j + m] = -1;
+						}
+						else if (!isNegative(tempM2[M1[t * m + j] - 1][j - 1]) && !isNegative(tempM2[M1[t * m + j] - 1][j + 1])) {
+							tempM2[t][j] = 1;
+							tempM2[t][j + m] = -1;
+							t = M1[t * m + j] - 1;
+							tempM2[t][j] = -1;
+							tempM2[t][j + m] = 1;
+						}
+						else {
+							tempM2[t][j] = -1;
+							tempM2[t][j + m] = 1;
+							t = M1[t * m + j] - 1;
+							tempM2[t][j] = 1;
+							tempM2[t][j + m] = -1;
+						}
+					}
+				}
+			}
+			//---------------------------------------------------------------------
+			// Fill in M2_2
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < 2 * m; j++) {
+					M2_2[i * 2 * m + j] = tempM2[i][j];
+				}
+			}
+
+			/*
 			if (!breaksOk(M2_2)) { 
-				std::cout << "\nOops! It seems that the SDMC algorithm didn't work this time! :( \nUsing Cplex instead!\n";
+				std::cout << "\n\nOops! It seems that the SDMC algorithm didn't work this time! :( \nUsing Cplex instead!\n";
 				doPhaseTwo = 1; 
 			}
+			*/
 		}
 	}
 	if (doPhaseTwo) {
@@ -610,8 +681,8 @@ int main() {
 	else { std::cout << "Error while trying to open file!"; }
 
 
-	basicLocalSearch(M3);
 	tabuSearch(M3, 50);
+	variableNeighborhoodSearch(M3);
 
 
 	std::cout << "\nSolution feasible: " << isFeasible(M3);
@@ -1011,7 +1082,7 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 }
 
 // Uses first-accept to do a greedy local search
-void basicLocalSearch(vector<long>& plan) {
+void variableNeighborhoodSearch(vector<long>& plan) {
 	cout << "\n\n=== Basic local search (greedy)!\nInitial solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\nWith a cost of: " << cost(plan) << "\n";
@@ -1035,7 +1106,7 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 	int b = 1000;
 	int c = 10000;
 	int d = 100000;
-	int t = n / 2;
+	int t = floor(n / 4);
 	vector<int> teamTabuList;
 	vector<int> roundTabuList;
 	vector<long> originalSolution = plan;
