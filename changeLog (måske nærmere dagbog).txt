@@ -439,7 +439,11 @@ v. 1.1.0 --- (21-06-2020)
  = Fase 2 = 
   - Har implementeret Mishas algoritme og udkommenteret SDMC algoritmen. Begge har desværre sandsynlighed for at fejle...
 
-
+v. 1.1.1 --- (22-06-2020)
+ = Fase 2 =
+  - Har ændret i "decision-træet". Dvs. at den nu prøver SDMC-algoritmen. Hvis denne fejler, prøver den Mishas algoritme, hvis denne også fejler, bruger den Cplex.
+ = Fase 3 = 
+  - Har tilføjet lidt flere ting til den sidste udskrift
 
 
 

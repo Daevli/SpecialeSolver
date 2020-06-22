@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 1.0.1
+// Version: 1.1.1
 // ---------------------------------
 
 #include <iostream>
@@ -276,7 +276,8 @@ int main() {
 		else {
 			std::cout << "No problem-specific hard constraints concerning location. \nUsing the SDMC algorithm by me::: - Johan!\n";
 			vector<vector<long>> tempM2 = convertVectorOneToTwoDimensions(M2_2, n, 2 * m);
-			/*
+			
+			//---------------------------- SDMC algorithm ------------------------------- 
 			// First step: Fill out the first column and the first column in the second half
 			for (int i = 0; i < n; i++) {
 				if (tempM2[i][0] == 0) {
@@ -286,7 +287,7 @@ int main() {
 					tempM2[M1[i * m] - 1][m] = 1;
 				}
 			}
-			cout << "\nHas filled in the first column";
+			std::cout << "\nHas filled in the first column";
 			// Second step: Find the next empty entry and fill in the negative value of the one to the left...::: (and the opponent and the second half)
 			for (int j = 1; j < m; j++) {
 				for (int i = 0; i < n; i++) {
@@ -348,81 +349,87 @@ int main() {
 			// such that if it produces an infeasible solution, Cplex used to solve instead.
 			// Note, that this is unlikely to happen, but if it does, the program will
 			// read from the hard constraints file and enforce them
-			*/
-
-			//----------------------------------------------- Misha
-			int t = 0;
-			for (int j = 0; j < m; j += 2) {
-				for (int i = 0; i < n; i++)	{
-					if (tempM2[i][j] == 0) {
-						t = i;
-						if (tempM2[i][j + 1] == 0) {
-							while (tempM2[t][j] == 0) {
+			
+			if (!breaksOk(M2_2)) {
+				std::cout << "\n\nOops! It seems that the SDMC algorithm didn't work this time! :( \nTrying Mishas algorithm instead!\n";
+				// Wipe M2_2 and tempM2
+				for (int i = 0; i < n; i++) {
+					for (int j = 0; j < 2 * m; j++) {
+						tempM2[i][j] = 0;
+						M2_2[i * 2 * m + j] = 0;
+					}
+				}
+				//----------------------------------------------- Misha -------------------------------------
+				int t = 0;
+				for (int j = 0; j < m; j += 2) {
+					for (int i = 0; i < n; i++) {
+						if (tempM2[i][j] == 0) {
+							t = i;
+							if (tempM2[i][j + 1] == 0) {
+								while (tempM2[t][j] == 0) {
+									tempM2[t][j] = 1;
+									tempM2[t][j + 1] = -1;
+									tempM2[t][j + m] = -1;
+									tempM2[t][j + m + 1] = 1;
+									t = M1[t * m + j + 1] - 1;
+									tempM2[t][j + 1] = 1;
+									tempM2[t][j] = -1;
+									tempM2[t][j + m + 1] = -1;
+									tempM2[t][j + m] = 1;
+									t = M1[t * m + j] - 1;
+								}
+							}
+							// the last column is a special case
+							else if (isNegative(tempM2[t][j - 1]) && isNegative(tempM2[t][j + 1])) {
 								tempM2[t][j] = 1;
-								tempM2[t][j + 1] = -1;
 								tempM2[t][j + m] = -1;
-								tempM2[t][j + m + 1] = 1;
-								t = M1[t * m + j + 1] - 1;
-								tempM2[t][j + 1] = 1;
+								t = M1[t * m + j] - 1;
 								tempM2[t][j] = -1;
-								tempM2[t][j + m + 1] = -1;
+								tempM2[t][j + m] = 1;
+							}
+							else if (!isNegative(tempM2[t][j - 1]) && !isNegative(tempM2[t][j + 1])) {
+								tempM2[t][j] = -1;
 								tempM2[t][j + m] = 1;
 								t = M1[t * m + j] - 1;
+								tempM2[t][j] = 1;
+								tempM2[t][j + m] = -1;
 							}
-						}
-						// the last column is a special case
-						else if (isNegative(tempM2[t][j - 1]) && isNegative(tempM2[t][j + 1])) {
-							tempM2[t][j] = 1;
-							tempM2[t][j + m] = -1;
-							t = M1[t * m + j] - 1;
-							tempM2[t][j] = -1;
-							tempM2[t][j + m] = 1;
-						}
-						else if (!isNegative(tempM2[t][j - 1]) && !isNegative(tempM2[t][j + 1])) {
-							tempM2[t][j] = -1;
-							tempM2[t][j + m] = 1;
-							t = M1[t * m + j] - 1;
-							tempM2[t][j] = 1;
-							tempM2[t][j + m] = -1;
-						}
-						else if (isNegative(tempM2[M1[t * m + j] - 1][j - 1]) && isNegative(tempM2[M1[t * m + j] - 1][j + 1])) {
-							tempM2[t][j] = -1;
-							tempM2[t][j + m] = 1;
-							t = M1[t * m + j] - 1;
-							tempM2[t][j] = 1;
-							tempM2[t][j + m] = -1;
-						}
-						else if (!isNegative(tempM2[M1[t * m + j] - 1][j - 1]) && !isNegative(tempM2[M1[t * m + j] - 1][j + 1])) {
-							tempM2[t][j] = 1;
-							tempM2[t][j + m] = -1;
-							t = M1[t * m + j] - 1;
-							tempM2[t][j] = -1;
-							tempM2[t][j + m] = 1;
-						}
-						else {
-							tempM2[t][j] = -1;
-							tempM2[t][j + m] = 1;
-							t = M1[t * m + j] - 1;
-							tempM2[t][j] = 1;
-							tempM2[t][j + m] = -1;
+							else if (isNegative(tempM2[M1[t * m + j] - 1][j - 1]) && isNegative(tempM2[M1[t * m + j] - 1][j + 1])) {
+								tempM2[t][j] = -1;
+								tempM2[t][j + m] = 1;
+								t = M1[t * m + j] - 1;
+								tempM2[t][j] = 1;
+								tempM2[t][j + m] = -1;
+							}
+							else if (!isNegative(tempM2[M1[t * m + j] - 1][j - 1]) && !isNegative(tempM2[M1[t * m + j] - 1][j + 1])) {
+								tempM2[t][j] = 1;
+								tempM2[t][j + m] = -1;
+								t = M1[t * m + j] - 1;
+								tempM2[t][j] = -1;
+								tempM2[t][j + m] = 1;
+							}
+							else {
+								tempM2[t][j] = -1;
+								tempM2[t][j + m] = 1;
+								t = M1[t * m + j] - 1;
+								tempM2[t][j] = 1;
+								tempM2[t][j + m] = -1;
+							}
 						}
 					}
 				}
-			}
-			//---------------------------------------------------------------------
-			// Fill in M2_2
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < 2 * m; j++) {
-					M2_2[i * 2 * m + j] = tempM2[i][j];
+				//---------------------------------------------------------------------
+				// Fill in M2_2
+				for (int i = 0; i < n; i++) {
+					for (int j = 0; j < 2 * m; j++) {
+						M2_2[i * 2 * m + j] = tempM2[i][j];
+					}
+				}
+				if (!breaksOk(M2_2)) {
+					std::cout << "\n\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note, that the hardConstraints.txt file will be read and hard constraints may be enforced.";
+					doPhaseTwo = 1;
 				}
 			}
-
-			/*
-			if (!breaksOk(M2_2)) { 
-				std::cout << "\n\nOops! It seems that the SDMC algorithm didn't work this time! :( \nUsing Cplex instead!\n";
-				doPhaseTwo = 1; 
-			}
-			*/
 		}
 	}
 	if (doPhaseTwo) {
@@ -681,11 +688,12 @@ int main() {
 	else { std::cout << "Error while trying to open file!"; }
 
 
-	tabuSearch(M3, 50);
 	variableNeighborhoodSearch(M3);
-
-
-	std::cout << "\nSolution feasible: " << isFeasible(M3);
+	tabuSearch(M3, 200);
+	std::cout	<< "\nConstraints in phase 1: " << doPhaseOne 
+				<< "\nConstraints in phase 2: " << doPhaseTwo
+				<< "\nSolution feasible:      " << isFeasible(M3);
+	
 	int t = 0;
 	// Print elapsed time
 	if (doPhaseOne) { t = 700; }
@@ -1320,7 +1328,7 @@ void tabuSearch(vector<long>& plan, int tolerence) {
 	cout << " Tabu search done!\nNew solution:";
 	printMat(plan, n, 2 * m);
 	cout << "\n\nWith a cost of: " << cost(plan)
-		<< "\n---\nParameters:\nTolerence for no improvement: " << tolerence
+		<< "\n---\nTabu search parameters:\nTolerence for no improvement: " << tolerence
 		<< "\nSize of tabulist(s):          " << t
 		<< "\nNumber of iterations:         " << iteration
 		<< "\n---";

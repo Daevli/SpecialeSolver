@@ -11,7 +11,7 @@ C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(655,7
 C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(654,7): warning C4101: 'team1': unreferenced local variable
 C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(652,6): warning C4101: 'constraintCode': unreferenced local variable
 C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(653,6): warning C4101: 'round': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(1109,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(1110,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
   Generating code
   1 of 568 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
