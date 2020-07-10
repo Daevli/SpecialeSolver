@@ -28,8 +28,6 @@ using namespace std;
 int n; // Number of teams
 int m; // Number of rounds in the first half of the tournament
 vector<int> latinSquare;		// Latin square used for solving the edge coloring problem in phase 1.
-vector<int> fixedMatchups;		// Vector describing which entries in the latin square to ignore (hard constraints, phase 1)
-vector<int> bannedRounds;		// Vector describing which rounds are not allowed in certain entries (Latin square, hard constraints, phase 1)
 vector<long> M1;
 vector<long> M2;
 vector<long> M3;
@@ -40,13 +38,13 @@ int main();
 // Declare refactoring methods
 vector<vector<long>> convertVectorOneToTwoDimensions(vector<long> v, int rows, int cols);
 void printMat(vector<long> &arr, int n, int m);
+int numberOfBreaks(vector<long> plan);
 void swapRounds(vector<long> &mat, int k, int l);
 void swapRows(vector<long> &mat, int k, int l);
 void swapNumbers(vector<long> &mat, int k, int l);
 void swapTeams(vector<long>& mat, int k, int l);
 void variableNeighborhoodSearch(vector<long> &plan);
 void tabuSearch(vector<long>& plan, int tolerence);
-void done();
 long cost(vector<long>& plan);
 int modMod(int a, int b);
 int flipOneAndZero(int t);
@@ -95,97 +93,149 @@ int main() {
 	M1.resize(n * m);
 
 	if (doPhaseOne) {
-	// Edge-coloring/latin square
+	// Edge-coloring/latin square and solve it with Cpelx
 		latinSquare.resize(n * n);
-		bannedRounds.resize(n * n);
 
-	// fill the diagonal with 1's and makes the algorithm ignore the diagonal.
-		for (int i = 0; i < n; i++) {
-			latinSquare[i * n + i] = 1;
-			fixedMatchups.push_back(i * n + i);
-		}
+		// Build Cplex model
+		IloEnv env1;
 
-	// To reduce computation time, add some random constraints? 
-	// Ensure that they are feasible 
-	// They will be overwritten if they are in the way of user-specified constraints
+		// try solving model
+		try {
+			IloModel model1(env1);
+			env1 = model1.getEnv();
+			IloCplex cplex1(model1);
+			IloNumVarArray latinSquareCplexTemp(env1, n * n);
+			IloExpr e1_1(env1);
 
-	// Read file 
-		string line;
-		string H;
-		int f;
-		int constraintCode;
-		int round;
-		vector<int> v;
-		ifstream myFile("hardConstraints.txt");
+			cplex1.extract(model1);
 
-		// Problem-specific constraints
-		if (myFile.is_open()) {
-			cout << "\n\nFound constraints: ";
-			while (getline(myFile, line)) {			// Read string 
-				stringstream ss(line);				// Make stringstream from s 
-				v.clear();							// Clear vector v
-				while (ss >> f) {					// Read ints from ss into f 
-					v.push_back(f);					// Add f to vector 
-				}
-				constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
-				switch (constraintCode) {
-				case 3:
-					round = v.operator[](3) % m;	// If the specified round exceeds number of rounds, uses mod.
-					bannedRounds[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] = round + 1;	// Adds the row/col and given round to a banned list
-					bannedRounds[(v.operator[](2) - 1) * n + (v.operator[](1) - 1)] = round + 1;	
-					cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must NOT play in round " << v.operator[](3);
-					break;
-				case 5:
-					fixedMatchups.push_back((v.operator[](1) - 1) * n + (v.operator[](2) - 1));			// Adds the row/col of latinSquare to an "ignore list"
-					fixedMatchups.push_back((v.operator[](2) - 1) * n + (v.operator[](1) - 1));			// Since the matrix is symmetric.
-					latinSquare[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] = v.operator[](3);	// Sets the row/col of latinSquare to the specified round
-					latinSquare[(v.operator[](2) - 1) * n + (v.operator[](1) - 1)] = v.operator[](3);
-					cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must play in round " << v.operator[](3);
-					break;
-				default:
-					break;
+			// Add entry variables
+			for (int i = 0; i < n * n; i++) {
+				latinSquareCplexTemp[i] = IloNumVar(env1, 1, n, ILOINT);
+			}
+
+			// Create objective expression
+			IloExpr obj1(env1);
+			for (int i = 0; i < n * n; i++) {
+				obj1 += latinSquareCplexTemp[i];
+			}
+
+			// Add objective to the model
+			model1.add(IloMinimize(env1, obj1));
+
+			// Constraint such that the LS is symmetric
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++)	{
+					e1_1.clear();
+					e1_1 += (latinSquareCplexTemp[i * n + j] == latinSquareCplexTemp[j * n + i]);
+					model1.add(e1_1 == 1);
 				}
 			}
-			myFile.close();
-		}
-		else { cout << "Error while trying to open file!"; }
 
-		// Print the latinSquare before solving it
-		cout << "\n\nLatin square before solving:\n";
+			// Constraint such that each team plays "itself" in the first round
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++)	{
+					e1_1.clear();
+					if (i == j) {
+						e1_1 += (latinSquareCplexTemp[i * n + j] == 1);
+						model1.add(e1_1 == 1);
+					}
+				}
+			}
+
+			// Constraint such that rows contain all different numbers
+			for (int i = 0; i < n; i++)	{
+				for (int j = 0; j < n - 1; j++)	{
+					e1_1.clear();
+					for (int k = j + 1; k < n; k++){
+						e1_1 += (latinSquareCplexTemp[i * n + j] == latinSquareCplexTemp[i * n + k]);
+					}
+					model1.add(e1_1 == 0);
+				}
+			}
+
+			// Read file 
+			string line;
+			string H;
+			int f;
+			int constraintCode;
+			int round;
+			vector<int> v;
+			ifstream myFile("hardConstraints.txt");
+
+			// Problem-specific constraints
+			if (myFile.is_open()) {
+				std::cout << "\n\nFound constraints: ";
+				while (getline(myFile, line)) {			// Read string 
+					stringstream ss(line);				// Make stringstream from s 
+					v.clear();							// Clear vector v
+					while (ss >> f) {					// Read ints from ss into f 
+						v.push_back(f);					// Add f to vector 
+					}
+					constraintCode = v.operator[](0);	// Read first int of v, which determines the type of constraint
+					switch (constraintCode) {
+					case 3:
+						std::cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must NOT play in round " << v.operator[](3);
+						round = v.operator[](3) % m;	// If the specified round exceeds number of rounds, uses mod.
+						e1_1.clear();
+						e1_1 += (latinSquareCplexTemp[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] != round);
+						model1.add(e1_1 == 1);
+						break;
+					case 5:
+						std::cout << "\nHard pairing constraint : Team " << v.operator[](1) << " and team " << v.operator[](2) << " must play in round " << v.operator[](3);
+						round = v.operator[](3) % m;	// If the specified round exceeds number of rounds, uses mod.
+						e1_1.clear();
+						e1_1 += (latinSquareCplexTemp[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] == round);
+						model1.add(e1_1 == 1);
+						break;
+					default:
+						break;
+					}
+				}
+				myFile.close();
+			}
+			else { std::cout << "Error while trying to open file!"; }
+
+			// Extract model and set parameters for the solve
+			cplex1.extract(model1);
+			cplex1.setOut(env1.getNullStream()); // <-- Gets rid of cplex output
+			cplex1.setParam(IloCplex::Param::MIP::Limits::Solutions, 1); // <-- Only need one solution
+
+			// Solve the model
+			cplex1.solve();
+
+			// Save solution to the array latinSquare
+			IloNumArray vals1(env1);
+			cplex1.getValues(vals1, latinSquareCplexTemp);
+			for (int i = 0; i < n * n; i++) {
+				latinSquare[i] = vals1[i];
+			}
+
+		}
+		// end try
+		catch (IloException& e) { cerr << "\nConcert exception caught: " << e << "\n"; }
+		catch (...) { cerr << "\nUnknown exception caught" << "\n"; }
+		env1.end();
+
+		// Print the found latin square
+		std::cout << "\nSolution found: \n";
 		for (int j = 0; j < n; j++) {
 			for (int i = 0; i < n; i++) {
-				cout << setw(3) << latinSquare[i * n + j];
+				std::cout << setw(3) << latinSquare[i * n + j];
 			}
-			cout << "\n";
+			std::cout << "\n";
 		}
-		cout << "\n";
-
-		// Solve the latin square
-		if (solveLatinSquare(latinSquare) == true) {
-			// Print latinSquare after a successful solve...
-			cout << "\nSolution found: \n";
-			for (int j = 0; j < n; j++) {
-				for (int i = 0; i < n; i++) {
-					cout << setw(3) << latinSquare[i * n + j];
-				}
-			cout << "\n";
+		// Convert latin square to tournament
+		int row;
+		int col;
+		for (int i = 0; i < latinSquare.size(); i++)
+		{
+			latinSquare[i]--;
+			if (latinSquare[i] != 0) {
+				row = floor(i / n);
+				col = latinSquare[i] - 1;
+				M1[row * m + col] = i % n + 1;
 			}
-
-			// Convert latin square to tournament
-			int row;
-			int col;
-			for (int i = 0; i < latinSquare.size(); i++)
-			{
-				latinSquare[i]--;
-				if (latinSquare[i] != 0) {
-					row = floor(i / n);
-					col = latinSquare[i]-1;
-					M1[row * m + col] = i % n + 1;
-				}
-			}
-		}
-		else {
-			cout << "No solution exists!" << "\n\n";
 		}
 	}
 	else {
@@ -205,7 +255,7 @@ int main() {
 			}
 		}
 	}
-	cout << "\n\nM1: ";
+	std::cout << "\n\nM1: ";
 	printMat(M1, n, m);
 
 	// Extends the plan to a full DRR tournament
@@ -223,7 +273,7 @@ int main() {
 	}
 
 	// Print solution found in phase 1
-	cout << "\nM1_2 post phase 1:";
+	std::cout << "\nM1_2 post phase 1:";
 	printMat(M1_2, n, 2 * m);
 
 	// For some reason, this solves a bug concerning the construction of M3 in phase 3
@@ -426,16 +476,16 @@ int main() {
 					}
 				}
 				if (!breaksOk(M2_2)) {
-					std::cout << "\n\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note, that the hardConstraints.txt file will be read and hard constraints may be enforced.";
+					std::cout << "\n\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note, that the hardConstraints.txt file will be read and hard constraints may be enforced).";
 					doPhaseTwo = 1;
 				}
 			}
 		}
 	}
 	if (doPhaseTwo) {
-		cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
+		std::cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
 
-		// Build model
+		// Build model (CP model used in phase 2)
 		IloEnv env;
 
 		try {
@@ -591,8 +641,8 @@ int main() {
 				}
 				myFile.close();
 			}
-			else { cout << "Error while trying to open file!"; }
-			cout << "\n---\n";
+			else { std::cout << "Error while trying to open file!"; }
+			std::cout << "\n---\n";
 			// Extract model and set parameters for the solve
 			cplex.extract(model);
 			cplex.setOut(env.getNullStream()); // <-- Gets rid of cplex output
@@ -611,11 +661,6 @@ int main() {
 				}
 			}
 
-			if (cplex.solve()) {
-				cout << "\n\nSolved cplex model Zuccezzfully!";
-				// double OBJval = (double)cplex.getObjValue(); // <-- Get obj val
-				// cout << "\nNumber of breaks: " << OBJval << "\n";
-			}
 		}
 		// end try
 		catch (IloException& e) { cerr << "\nConcert exception caught: " << e << "\n"; }
@@ -671,11 +716,14 @@ int main() {
 				v.push_back(f);					// Add these to vector
 			}
 			switch (v[0]) {
-			case 1: std::cout << "\nSoft constraint s1: A cost of " << v[3] << " if team " << v[1] << " and " << v[2] << " play home at the same time.";
+			case 1: 
+				std::cout << "\nSoft constraint s1: A cost of " << setw(9) << v[3] << " if team " << v[1] << " and " << v[2] << " play home at the same time.";
 				break;
-			case 2: std::cout << "\nSoft constraint s2: A cost of " << v[3] << " if team " << v[1] << " plays home in round " << v[2];
+			case 2: 
+				std::cout << "\nSoft constraint s2: A cost of " << setw(9) << v[3] << " if team " << v[1] << " plays home in round " << v[2];
 				break;
-			case 3: std::cout << "\nSoft constraint s3: A cost of " << v[4] << " if team " << v[1] << " and team " << v[2] << " play in round " << v[3];
+			case 3: 
+				std::cout << "\nSoft constraint s3: A cost of " << setw(9) << v[4] << " if team " << v[1] << " and team " << v[2] << " play in round " << v[3];
 				break;
 			default:
 				break;
@@ -689,14 +737,15 @@ int main() {
 
 
 	variableNeighborhoodSearch(M3);
-	tabuSearch(M3, 200);
+	tabuSearch(M3, 20);
+
+	// Print out some information on the solution
 	std::cout	<< "\nConstraints in phase 1: " << doPhaseOne 
 				<< "\nConstraints in phase 2: " << doPhaseTwo
-				<< "\nSolution feasible:      " << isFeasible(M3);
+				<< "\nSolution feasible:      " << isFeasible(M3)
+				<< "\nNumber of breaks:       " << numberOfBreaks(M3);
 	
-	int t = 0;
 	// Print elapsed time
-	if (doPhaseOne) { t = 700; }
 	auto end = chrono::steady_clock::now();
 	cout << "\n---\nElapsed time: "
 		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count()-t << " ms"
@@ -735,133 +784,20 @@ void printMat(vector<long> &arr, int r, int c) {
 	}
 }
 
+// Method that returns number of breaks for a full tournament
+int numberOfBreaks(vector<long> plan) {
+	int num = 0;
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < 2 * m - 1; j++) {
+			if (isNegative(plan[i * 2 * m + j]) == isNegative(plan[i * 2 * m + j + 1])) {
+				num += 1;
+			}
+		}
+	}
+	return num;
+}
 
 /********* Phase 1 *********/
-// Searches the grid to find an entry that is still unassigned. If
-// found, the reference parameters row, col will be set the location
-// that is unassigned, and true is returned. If no unassigned entries
-// remain, false is returned. 
-pair<int, int> getUnassignedLocation(vector<int> latSq) {
-	for (int row = 0; row < n; row++)
-		for (int col = 0; col < n; col++)
-			if (latSq[row * n + col] == 0)
-			{
-				return make_pair(row, col);
-			}
-	return make_pair(n,n);
-}
-
-// Takes a partially filled-in grid and attempts to assign values to
-// all unassigned locations in such a way to meet the requirements
-// for a latin square (no duplicates in rows and columns) as well as
-// the problem-specific hard constraints
-int iter = 0;
-bool solveLatinSquare(vector<int> latSq) {
-	// Stops if the grid has been filled
-	if (getUnassignedLocation(latSq) == make_pair(n,n))
-	{
-		cout << "\n\nLatin square found!\nNumber of iterations: " << iter;
-		Sleep(700);
-		latinSquare = latSq;
-		return true;
-	}
-
-	// Get an unassigned grid location
-	pair<int, int> rowAndCol = getUnassignedLocation(latSq);
-	int row = rowAndCol.first;
-	int col = rowAndCol.second;
-
-	// Consider digits 2 to n (colors/rounds) 
-	// There is no need to consider 1, since all 1's have been placed from start
-	for (int num = 2; num <= n; num++)
-	{
-		// If placing the current number in the current
-		// unassigned location is valid, go ahead
-		if (isSafe(latSq, row, col, num))
-		{
-			// Make tentative assignment
-			latSq[row* n + col] = num;
-			latSq[col* n + row] = num;
-
-			iter++;
-			if (iter % 231237 == 0) {
-				cout << "\rOn iteration " << iter << ". Currently testing values in entry " << setw(3) << row * n + col 
-					 << " out of " << setw(3) << latSq.size() << ". Clicking in console will cancel!";
-				std::cout.flush();
-			}
-			
-
-
-			// Do the same thing again recursively. If we go 
-			// through all of the recursions, and in the end 
-			// return true, then all of our number placements 
-			// are valid and we are done
-			if (solveLatinSquare(latSq))
-			{
-				return true;
-			}
-			
-			// As we were not able to validly go through all 
-			// of the recursions, we must have an invalid number
-			// placement somewhere. Lets go back and try a 
-			// different number for this particular unassigned location
-			latSq[row * n + col] = 0;
-			latSq[col * n + row] = 0;
-		}
-	}
-
-	// If we have gone through all possible numbers for the current unassigned
-	// location, then we probably assigned a bad number early. So backtrack 
-	// and try a different number for the previous unassigned locations.
-	return false;
-}
-
-// Returns a boolean which indicates whether any assigned entry
-// in the specified row matches the given number. 
-bool usedInRow(vector<int> latSq, int row, int num) {
-	for (int col = 0; col < n; col++)
-		if (latSq[row * n + col] == num)
-		{
-			return true;
-		}
-	return false;
-}
-
-// Returns a boolean which indicates whether any assigned entry
-// in the specified column matches the given number. 
-bool usedInCol(vector<int> latSq, int col, int num) {
-	for (int row = 0; row < n; row++)
-		if (latSq[row * n + col] == num)
-		{
-			return true;
-		}
-	return false;
-}
-
-// Returns a boolean which indicates whether the given number breaks a constraint
-// either by trying to change a fixed number or assigning a number that is not allowed
-bool breaksConstraint(vector<int> latSq, int col, int row, int num) {
-	for (int i = 0; i < fixedMatchups.size(); i++)
-	{
-		if (row * n + col == fixedMatchups[i]) {
-			return true;
-		}
-		if (num == bannedRounds[row * n + col]) {
-			return true;
-		}
-	}
-	return false;
-}
-
-// Returns a boolean which indicates whether it will be legal to assign
-// num to the given row,col location.
-bool isSafe(vector<int> latSq, int row, int col, int num) {
-	// Check if 'num' is not already placed in current row,
-	// and current column
-	return !usedInRow(latSq, row, num) &&
-		!usedInCol(latSq, col, num) &&
-		!breaksConstraint(latSq, row, col, num);
-}
 
 
 /********* Phase 2 *********/
@@ -988,29 +924,26 @@ long cost(vector<long>& plan) {
 			break;
 		}
 	}
-		// Costs for each break in the plan.
-		for (int i = 0; i < plan.size() - 1; i++) {
-			if (isNegative(plan[i]) == isNegative(plan[i + 1])) {
-				cost += 50;
-			}
-		}
 
-		// Soft constraint s4 should always be in place
-		long ms;
-		long smallest;
-		for (int col = 0; col < 2 * m; col++) {
-			smallest = 10000;
-			for (int row = 0; row < n; row++) {
-				ms = (plan[row * 2 * m + col]) * (row + 1);
-				if (isNegative(ms)) {
-					ms = -ms;
-				}
-				if (ms < smallest) {
-					smallest = ms;
-				}
+	// Costs for each break in the plan.
+	cost += numberOfBreaks(plan) * 9000000;
+
+	// Soft constraint s4 should always be in place
+	long ms;
+	long smallest;
+	for (int col = 0; col < 2 * m; col++) {
+		smallest = 10000;
+		for (int row = 0; row < n; row++) {
+			ms = (plan[row * 2 * m + col]) * (row + 1);
+			if (isNegative(ms)) {
+				ms = -ms;
 			}
-			cost += smallest;
+			if (ms < smallest) {
+				smallest = ms;
+			}
 		}
+		cost += smallest;
+	}
 	return cost;
 }
 

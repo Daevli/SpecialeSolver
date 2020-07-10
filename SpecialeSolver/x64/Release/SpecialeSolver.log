@@ -1,19 +1,24 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(467,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (SpecialeSolver.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   MasterSolver.cpp
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(181,17): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(195,10): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(601,19): warning C4244: '=': conversion from 'IloNum' to '_Ty', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(211,29): warning C4244: '=': conversion from 'IloNum' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(235,16): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(245,10): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(658,19): warning C4244: '=': conversion from 'IloNum' to '_Ty', possible loss of data
           with
           [
               _Ty=long
           ]
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(655,7): warning C4101: 'team2': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(654,7): warning C4101: 'team1': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(652,6): warning C4101: 'constraintCode': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(653,6): warning C4101: 'round': unreferenced local variable
-C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(1110,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(707,7): warning C4101: 'team2': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(706,7): warning C4101: 'team1': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(704,6): warning C4101: 'constraintCode': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(705,6): warning C4101: 'round': unreferenced local variable
+C:\Users\Johan\source\repos\SpecialeSolver\SpecialeSolver\MasterSolver.cpp(1050,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
   Generating code
-  1 of 568 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
+  0 of 539 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
     0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code

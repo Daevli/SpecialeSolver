@@ -445,6 +445,10 @@ v. 1.1.1 --- (22-06-2020)
  = Fase 3 = 
   - Har tilføjet lidt flere ting til den sidste udskrift
 
-
+v. 1.2.0 --- (10-07-2020)
+ = Fase 1 =
+  - Har ændret måden hvorpå fase 1 løses med bibetingelser.
+	Har fjernet total enumeration og har tilføjet cplex. 
+	Den løser stadig en latin square.
 
 
