@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 1.1.1
+// Version: 1.2.3
 // ---------------------------------
 
 #include <iostream>
@@ -25,8 +25,13 @@ ILOSTLBEGIN
 
 using namespace std;
 
-int n; // Number of teams
-int m; // Number of rounds in the first half of the tournament
+int n; // Number of teams.
+int m; // Number of rounds in the first half of the tournament.
+int topTeamsCaseSix = 0; // Number of top teams declared in the constraint case 6 in phase 1.
+int topTeamsCaseSeven = 0; // Same for case 7.
+vector<int> bannedRoundsForTopMatches; // List containing the round where a top match is not allowed.
+int topTeamsCaseEight = 0; // Same for case 8.
+int roundsBetweenTopMatch = 0; // Minimum number of rounds without a top match between two top matches.
 vector<int> latinSquare;		// Latin square used for solving the edge coloring problem in phase 1.
 vector<long> M1;
 vector<long> M2;
@@ -44,20 +49,17 @@ void swapRows(vector<long> &mat, int k, int l);
 void swapNumbers(vector<long> &mat, int k, int l);
 void swapTeams(vector<long>& mat, int k, int l);
 void variableNeighborhoodSearch(vector<long> &plan);
+void shakeSolution(vector<long>& plan);
 void tabuSearch(vector<long>& plan, int tolerence);
 long cost(vector<long>& plan);
 int modMod(int a, int b);
 int flipOneAndZero(int t);
-bool firstAcceptNeighborhoodSearch(vector<long>& plan, int num);
-pair<int, int> getUnassignedLocation(vector<int> latSq);
-bool usedInRow(vector<int> latSq, int row, int num);
-bool usedInCol(vector<int> latSq, int col, int num);
-bool isSafe(vector<int> latSq, int row, int col, int num);
-bool solveLatinSquare(vector<int> latSq);
+bool firstAcceptVariableNeighborhoodDescent(vector<long>& plan);
 bool isNegative(long t);
 bool columnsOk(vector<long>& plan);
 bool rowsOk(vector<long>& plan);
 bool breaksOk(vector<long>& plan);
+bool topTeamsOk(vector<long> plan);
 bool isFeasible(vector<long>& plan);
 
 int main() {
@@ -93,7 +95,7 @@ int main() {
 	M1.resize(n * m);
 
 	if (doPhaseOne) {
-	// Edge-coloring/latin square and solve it with Cpelx
+	// Edge-coloring/latin square and solve it with Cplex
 		latinSquare.resize(n * n);
 
 		// Build Cplex model
@@ -188,6 +190,68 @@ int main() {
 						e1_1 += (latinSquareCplexTemp[(v.operator[](1) - 1) * n + (v.operator[](2) - 1)] == round);
 						model1.add(e1_1 == 1);
 						break;
+					case 6:
+						// constraint h5
+						std::cout << "\nTop opponent constraint : The first " << v.operator[](1) << " teams are set as top teams in this constraint.";
+						if (v.operator[](1) > topTeamsCaseSix) {
+							topTeamsCaseSix = v.operator[](1);
+						}
+						e1_1.clear();
+						for (int i = 0; i < n; i++) {
+							for (int j = 0; j < v.operator[](1) - 1; j++) {
+								for (int k = j + 1; k < v.operator[](1); k++) {
+									if (k != i && j != i) {
+										e1_1 += (latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] <= 1 
+												&& latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] >= -1 
+											|| latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] >= n - 2   
+											|| latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] <= 2 - n); 
+									}
+								}							
+							}
+							model1.add(e1_1 == 0);
+							e1_1.clear();
+						}
+						break;
+					case 7: 
+						// constraint h6
+						std::cout << "\nTop match constraint : No top match is allowed in round " << v.operator[](1) << ". The first " << v.operator[](2) << " teams are set as top teams in this constraint.";
+						if (v.operator[](2) > topTeamsCaseSeven) {
+							topTeamsCaseSeven = v.operator[](2);
+						}
+						bannedRoundsForTopMatches.push_back(v.operator[](1));
+						e1_1.clear();
+						for (int i = 0; i < v.operator[](2); i++) {
+							for (int j = 0; j < v.operator[](2); j++) {
+								e1_1 += (latinSquareCplexTemp[i * n + j] == v.operator[](1) + 1); // +1 because the latin square has +1. E.g. round 1 in tnmt is 2 in the LatSq
+							}
+						}
+						model1.add(e1_1 == 0);
+						break;
+					case 8:
+						// Constraint h7
+						std::cout << "\nTop match constraint : There must be at least " << v.operator[](1) << " rounds between top matches. The first " << v.operator[](2) << " teams are set as top teams in this constraint.";
+						if (v.operator[](2) > topTeamsCaseEight) {
+							topTeamsCaseEight = v.operator[](2);
+						}
+						if (v.operator[](1) > roundsBetweenTopMatch) {
+							roundsBetweenTopMatch = v.operator[](1);
+						}
+						e1_1.clear();
+						for (int i = 0; i < v.operator[](2); i++) {
+							for (int j = 0; j < v.operator[](2) - 1; j++) {
+								for (int k = j + 1; k < v.operator[](2); k++) {
+									if (k != i && j != i) {
+										e1_1 += (latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] <= v.operator[](1) + 1
+												&& latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] >= -v.operator[](1) - 1
+											|| latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] >= n - v.operator[](1) - 1
+											|| latinSquareCplexTemp[j * n + i] - latinSquareCplexTemp[k * n + i] <= v.operator[](1) + 1 - n);
+									}
+								}
+							}
+							model1.add(e1_1 == 0);
+							e1_1.clear();
+						}
+						break;
 					default:
 						break;
 					}
@@ -198,7 +262,7 @@ int main() {
 
 			// Extract model and set parameters for the solve
 			cplex1.extract(model1);
-			cplex1.setOut(env1.getNullStream()); // <-- Gets rid of cplex output
+			// cplex1.setOut(env1.getNullStream()); // <-- Gets rid of cplex output
 			cplex1.setParam(IloCplex::Param::MIP::Limits::Solutions, 1); // <-- Only need one solution
 
 			// Solve the model
@@ -289,6 +353,7 @@ int main() {
 	M2.resize(n * m);	
 	vector<long> M2_2(n * 2 * m);
 	M2_2.resize(n * 2 * m);
+	bool failedHeuristics = false;
 
 	if (!doPhaseTwo) {
 		if (!doPhaseOne) {
@@ -359,7 +424,6 @@ int main() {
 							for (int l = 0; l < 2 * m - 2; l++) {
 								// Fourth step: Put out fire and reset indices
 								if (tempM2[k][l] + tempM2[k][l + 1] + tempM2[k][l + 2] == 2) {
-									cout << "\nFire found: positive ";
 									for (int h = 0; h < 3; h++) {
 										if (tempM2[k][l + h] == 0) {
 											tempM2[k][l + h] = -1;
@@ -372,7 +436,6 @@ int main() {
 									l = 0;
 								}
 								if (tempM2[k][l] + tempM2[k][l + 1] + tempM2[k][l + 2] == -2) {
-									cout << "\nFire found: negative ";
 									for (int h = 0; h < 3; h++) {
 										if (tempM2[k][l + h] == 0) {
 											tempM2[k][l + h] = 1;
@@ -475,14 +538,15 @@ int main() {
 						M2_2[i * 2 * m + j] = tempM2[i][j];
 					}
 				}
-				if (!breaksOk(M2_2)) {
-					std::cout << "\n\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note, that the hardConstraints.txt file will be read and hard constraints may be enforced).";
-					doPhaseTwo = 1;
-				}
 			}
+			// Program crashes here if both heuristics fail... (16 teams, phase 1 yes, phase 2 no)
+		}
+		if (!breaksOk(M2_2)) {
+			std::cout << "\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note that the hardConstraints.txt file will be read and hard constraints may be enforced).\n";
+			failedHeuristics = true;
 		}
 	}
-	if (doPhaseTwo) {
+	if (doPhaseTwo || failedHeuristics) {
 		std::cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
 
 		// Build model (CP model used in phase 2)
@@ -737,10 +801,11 @@ int main() {
 
 
 	variableNeighborhoodSearch(M3);
-	tabuSearch(M3, 20);
+	//tabuSearch(M3, 20);
 
 	// Print out some information on the solution
-	std::cout	<< "\nConstraints in phase 1: " << doPhaseOne 
+	std::cout	<< "\n-------------------------"
+				<< "\nConstraints in phase 1: " << doPhaseOne 
 				<< "\nConstraints in phase 2: " << doPhaseTwo
 				<< "\nSolution feasible:      " << isFeasible(M3)
 				<< "\nNumber of breaks:       " << numberOfBreaks(M3);
@@ -748,10 +813,10 @@ int main() {
 	// Print elapsed time
 	auto end = chrono::steady_clock::now();
 	cout << "\n---\nElapsed time: "
-		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count()-t << " ms"
+		<< "\n" << "Phase 1: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseOne - start).count() << " ms"
 		<< "\n" << "Phase 2: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(postPhaseTwo - postPhaseOne).count() << " ms"
 		<< "\n" << "Phase 3: " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - postPhaseTwo).count() << " ms\n---"
-		<< "\n" << "Total  : " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - start).count()-t << " ms"
+		<< "\n" << "Total  : " << setw(12) << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms"
 		<< "\n" << "------------------------";
 
 	// Play sound on completion
@@ -949,12 +1014,12 @@ long cost(vector<long>& plan) {
 
 // Returns the first improving neighbor (first accept) to a given tournament plan
 // The neighborhood used is determined by a given integer, num
-bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
+bool firstAcceptVariableNeighborhoodDescent(vector<long> &plan) {
 	vector<long> oldPlan = plan; // Save the plan before making changes
 	int oldCost = cost(plan); // Save the cost of the original plan
-	num = 0;
+	int num = 0;
 	while (num < 4) {
-		//if (num % 4 == 1) {							// move p1
+		// move p1
 		cout << "\nmove p1: Swap rounds  : ";
 		for (int i = 0; i < m - 1; i++)
 			for (int j = i + 1; j < m; j++) {
@@ -967,8 +1032,7 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 			}
 		cout << "no improvement, trying another neighborhood... ";
 		num++;
-		//}
-		//if (num % 4 == 3) {							// move p2
+		// move p2
 		cout << "\nmove p2: Swap teams   : ";
 		for (int k = 0; k < n - 1; k++)
 			for (int l = k + 1; l < n; l++) {
@@ -981,59 +1045,100 @@ bool firstAcceptNeighborhoodSearch(vector<long> &plan, int num) {
 			}
 		cout << "no improvement, trying another neighborhood... ";
 		num++;
-		//}
-		//if (num % 4 == 0) {
-			cout << "\nmove p1-p2            : ";
-			for (int i = 0; i < m - 1; i++)
-				for (int j = i + 1; j < m; j++)
-					for (int k = 0; k < n - 1; k++)
-						for (int l = k + 1; l < n; l++) {					// move p1-p2
-							swapRounds(plan, i, j);
-							swapTeams(plan, k, l);
-							if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-								cout << "FA: found better";
-								return true;
-							}
-							plan = oldPlan;
+		// move p1-p2
+		cout << "\nmove p1-p2            : ";
+		for (int i = 0; i < m - 1; i++)
+			for (int j = i + 1; j < m; j++)
+				for (int k = 0; k < n - 1; k++)
+					for (int l = k + 1; l < n; l++) {					
+						swapRounds(plan, i, j);
+						swapTeams(plan, k, l);
+						if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+							cout << "FA: found better";
+							return true;
 						}
-			cout << "no improvement, trying another neighborhood... ";
-			num++;
-		//}
-		//if (num % 4 == 2) {
-			cout << "\nmove p2-p1            : ";
-			for (int i = 0; i < m - 1; i++)
-				for (int j = i + 1; j < m; j++)
-					for (int k = 0; k < n - 1; k++)
-						for (int l = k + 1; l < n; l++) {					// move p2-p1
-							swapTeams(plan, k, l);
-							swapRounds(plan, i, j);
-							if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
-								cout << "FA: found better";
-								return true;
-							}
-							plan = oldPlan;
+						plan = oldPlan;
+					}
+		cout << "no improvement, trying another neighborhood... ";
+		num++;
+		// move p2-p1
+		cout << "\nmove p2-p1            : ";
+		for (int i = 0; i < m - 1; i++)
+			for (int j = i + 1; j < m; j++)
+				for (int k = 0; k < n - 1; k++)
+					for (int l = k + 1; l < n; l++) {					
+						swapTeams(plan, k, l);
+						swapRounds(plan, i, j);
+						if (isFeasible(plan) && oldCost > cost(plan)) {			// If the new plan is better, return it
+							cout << "FA: found better";
+							return true;
 						}
-			cout << "no improvement. ";
-			num++;
-			//}
-	
+						plan = oldPlan;
+					}
+		cout << "no improvement. ";
+		num++;	
 	}
 
 	return false; // If we go through all neighbors without improvement, the old plan is returned.
 }
 
-// Uses first-accept to do a greedy local search
-void variableNeighborhoodSearch(vector<long>& plan) {
-	cout << "\n\n=== Basic local search (greedy)!\nInitial solution:";
-	printMat(plan, n, 2 * m);
-	cout << "\nWith a cost of: " << cost(plan) << "\n";
-	int iteration = 0;
-	while (firstAcceptNeighborhoodSearch(plan, iteration)) {
-		iteration++;
+void shakeSolution(vector<long>& plan) {
+	vector<long> oldPlan = plan; // Save the plan before making changes
+	int num = 0;
+	int k = 0;
+	int l = 0;
+	int i = 0;
+	int j = 0;
+	while (num < 100000) {
+		// choose two random teams k, l and two random rounds i, j
+		k = rand() % n;
+		l = rand() % n;
+		i = rand() % m;
+		j = rand() % m;
+
+		// Try to do move p1 and/or p2 with these values.
+		swapTeams(plan, k, l);
+		if (isFeasible(plan)) {			
+			oldPlan = plan;
+		}
+		else {
+			plan = oldPlan;
+		}
+		swapRounds(plan, i, j);
+		if (isFeasible(plan)) {
+			oldPlan = plan;
+		}
+		else {
+			plan = oldPlan;
+		}
+		num++;
 	}
-	cout << "\n\nDone!\nNew solution:";
+}
+
+// Uses first-accept in a variable neighborhood search
+void variableNeighborhoodSearch(vector<long>& plan) {
+	std::cout << "\n\n=== Variable neighborhood search\nInitial solution:";
 	printMat(plan, n, 2 * m);
-	cout << "\n\nWith a cost of: " << cost(plan);
+	std::cout << "\nWith a cost of: " << cost(plan) << "\n";
+	vector<long> bestPlan = plan;
+	int iteration = 0;
+	int numberOfShakes = 0;
+	while (numberOfShakes < 5) {
+		while (firstAcceptVariableNeighborhoodDescent(plan)) {
+			iteration++;
+		}
+		if (cost(plan) < cost(bestPlan)) {
+			std::cout << "\n\nFound better plan by shaking!! Diff: " << cost(plan) - cost(bestPlan) << "\n\n ";
+			bestPlan = plan;
+		}
+		std::cout << "\n\nShaking!\n";
+		shakeSolution(plan);
+		numberOfShakes++;
+	}
+
+	cout << "\n\nDone!\nNew solution:";
+	printMat(bestPlan, n, 2 * m);
+	cout << "\n\nWith a cost of: " << cost(bestPlan);
 }
 
 // Tabu search
@@ -1323,7 +1428,57 @@ bool breaksOk(vector<long>& plan) {
 	return true;
 }
 
+// Returns false, if the top teams constraints in phase 1 are broken.
+bool topTeamsOk(vector<long> plan) {
+	int first;
+	int second;
+	// Case 6 in the switch statement (constraint h5)
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < 2 * m - 1; j++) {
+			first = plan[i * 2 * m + j];
+			second = plan[i * 2 * m + j + 1];
+			if (isNegative(first)) {
+				first = -first;
+			}
+			if (isNegative(second)) {
+				second = -second;
+			}
+			if (first <= topTeamsCaseSix && second <= topTeamsCaseSix) {
+				return false;
+			}
+		}
+	}
+	// Case 7 (constraint h6)
+	for (int k = 0; k < bannedRoundsForTopMatches.size(); k++) {
+		int j = bannedRoundsForTopMatches[k] - 1;
+		for (int i = 0; i < topTeamsCaseSeven; i++) {
+			if (plan[i * 2 * m + j] <= topTeamsCaseSeven && plan[i * 2 * m + j] >= -topTeamsCaseSeven) {
+				return false;
+			}
+		}
+	}
+	// Case 8 (constraint h7)
+	for (int i = 0; i < topTeamsCaseEight; i++) {
+		for (int j = 0; j < 2 * m - roundsBetweenTopMatch; j++) {
+			first = plan[i * 2 * m + j];
+			for (int k = 1; k <= roundsBetweenTopMatch; k++)	{
+				second = plan[i * 2 * m + j + k];
+				if (isNegative(first)) {
+				first = -first;
+			}
+				if (isNegative(second)) {
+				second = -second;
+			}
+				if (first <= topTeamsCaseEight && second <= topTeamsCaseEight) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 // Returns true if the tournament plan is feasible
 bool isFeasible(vector<long>& plan) {
-	return (columnsOk(plan) && rowsOk(plan) && breaksOk(plan));
+	return (columnsOk(plan) && rowsOk(plan) && breaksOk(plan) && topTeamsOk(plan));
 }

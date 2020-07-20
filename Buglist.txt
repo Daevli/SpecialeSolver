@@ -5,6 +5,9 @@ ACTIVE
    -> Problemet kan løses ved at genstarte IDE'en... (cache-problem?)
    -> Kan nogle gange også løses ved at køre koden igen
 
+=> Hvis både min og mishas algoritmer fejler, crasher programmet, i stedet for at køre cplex. Jeg har markeret hvor det er. 
+   -> Det sker f.eks. ved 16 hold, fase 1: ja, fase 2: nej (givet, at der ikke er ændret i bibetingelserne)
+
 SOLVED
 => M3 bliver ikke regnet ordenligt for n >= 10
    -> M3 skal være lig M1_2 * M2_2, men nogle indgange bliver bare erstattet af M2_2.

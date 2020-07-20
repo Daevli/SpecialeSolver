@@ -451,4 +451,37 @@ v. 1.2.0 --- (10-07-2020)
 	Har fjernet total enumeration og har tilføjet cplex. 
 	Den løser stadig en latin square.
 
+v. 1.2.1 --- (10-07-2020)
+ = Hjælpemetoder/Refaktorerering = 
+  - Har tilføjet shake til variable neighborhood search, som vælger 2 hold og 2 runder tilfældigt og prøver at lave move p1 og p2. 
+	Umiddelbart lader det til, at 5 shakes er nok til, at den bedste løsning findes (12 hold).
+
+v. 1.2.2 --- (12-07-2020)
+ = Fase 1 = 
+  - Har tilføjet topkamp/toprunde bibetingelser til fasen, hvilket var de sidste der manglede. (Ikke testet endnu)
+	(har også tilføjet dem til guiden).
+
+v. 1.2.3 --- (20-07-2020)
+ = Fase 1 =
+  - top-team constraint  (h5) virker nu som ønsket.
+  - top match constraint (h6) samme.
+  - top match constraint (h7) samme.
+ = Hjælpemetoder/refaktorering =
+  - Har tilføjet en boolean til isFeasible(), som tjekker, om top-kamp/-hold constraints er overholdt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

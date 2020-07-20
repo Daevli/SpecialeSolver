@@ -80,7 +80,53 @@ Each type of constraint has a constraint-index:
      -- Notes:
 	
 ----------------------------
+#6 : Hard top opponent constraint, phase 1
+´    -- Description:
+	"Each team must not play a top opponent two rounds in a row."
 
+     -- Arguments:
+	# of top teams in the tournament
+
+     -- Example:
+	6 2
+	There are 2 teams classified as top teams in the tournament. Each team must not play against these 
+	two rounds in a row.
+
+     -- Notes:
+	The top teams are the first x teams. e.g. if there are 3 top teams in the tournament, they are teams 1, 2, 3.
+
+----------------------------
+#7 : Hard top match constraint, phase 1
+     -- Description:
+	"No match between two top teams are allowed in this round."
+
+     -- Arguments:
+	round, # of top teams
+
+     -- Example:
+	7 3 2
+	There are 2 top teams (1 and 2) and they must NOT play in round 3
+
+     -- Notes:
+	As before, the top teams are the first x teams. 
+	These top teams are chosen independent of the other constraints concerning top teams!
+	Therefore, it is possible to chose different numbers top teams in each constraint.
+
+----------------------------
+#8 : Hard top match constraint 2, phase 1
+     -- Description:
+	"There must be at least q rounds between a match between two top teams."
+
+     -- Arguments:
+	# of rounds between, # of top teams
+
+     -- Example:
+	8 1 3
+	There must be at least 1 non-top match between every top match. There are 3 top teams (1, 2 and 3).
+
+     -- Notes:
+	As before, the first x teams are considered the top teams, and the top teams chosen in this constraint are 
+	independent of the top teams chosen in the other constraints.
 
 
 
