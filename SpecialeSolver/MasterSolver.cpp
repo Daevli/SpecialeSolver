@@ -1,7 +1,7 @@
 // ---------------------------------
 // Author: Johan Arendal Jørgensen
 // Title:  Tournament Planning Tool
-// Version: 1.2.3
+// Version: 1.2.4
 // ---------------------------------
 
 #include <iostream>
@@ -389,10 +389,9 @@ int main() {
 			}
 		}
 		else {
-			std::cout << "No problem-specific hard constraints concerning location. \nUsing the SDMC algorithm by me::: - Johan!\n";
+			std::cout << "No problem-specific hard constraints concerning location. \nUsing the SD algorithm.";
 			vector<vector<long>> tempM2 = convertVectorOneToTwoDimensions(M2_2, n, 2 * m);
-			
-			//---------------------------- SDMC algorithm ------------------------------- 
+			//---------------------------- SD algorithm ------------------------------- 
 			// First step: Fill out the first column and the first column in the second half
 			for (int i = 0; i < n; i++) {
 				if (tempM2[i][0] == 0) {
@@ -402,7 +401,6 @@ int main() {
 					tempM2[M1[i * m] - 1][m] = 1;
 				}
 			}
-			std::cout << "\nHas filled in the first column";
 			// Second step: Find the next empty entry and fill in the negative value of the one to the left...::: (and the opponent and the second half)
 			for (int j = 1; j < m; j++) {
 				for (int i = 0; i < n; i++) {
@@ -458,7 +456,7 @@ int main() {
 					M2_2[i * 2 * m + j] = tempM2[i][j];
 				}
 			}
-			// Since the algorithm has no mathematical proof, a fail-safe mechanism is added, 
+			// A fail-safe mechanism is added, 
 			// such that if it produces an infeasible solution, Cplex used to solve instead.
 			// Note, that this is unlikely to happen, but if it does, the program will
 			// read from the hard constraints file and enforce them
@@ -539,12 +537,12 @@ int main() {
 					}
 				}
 			}
-			// Program crashes here if both heuristics fail... (16 teams, phase 1 yes, phase 2 no)
+			if (!breaksOk(M2_2)) {
+				std::cout << "\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note that the hardConstraints.txt file will be read and hard constraints may be enforced).\n";
+				failedHeuristics = true;
+			}
 		}
-		if (!breaksOk(M2_2)) {
-			std::cout << "\nYikes! That didn't work either! \nLast resort: Cplex... \n(Note that the hardConstraints.txt file will be read and hard constraints may be enforced).\n";
-			failedHeuristics = true;
-		}
+		
 	}
 	if (doPhaseTwo || failedHeuristics) {
 		std::cout << "Problem-specific constraints detected! \nUsing Cplex to solve the CP model...";
@@ -611,18 +609,18 @@ int main() {
 			}
 
 			// Constraints 3, 4, 5, 6
-			for (int i = 0; i < n * m; i += m) {
+			for (int i = 0; i < n; i++) {
 				e1.clear();
-				e1 += h[i] + h[i + 1] - h[i + m - 1];
+				e1 += h[i * m] + h[i * m + 1] - h[i * m + m - 1];
 				model.add(e1 <= 1);
 				e1.clear();
-				e1 += h[i] + h[i + 1] - h[i + m - 1];
+				e1 += h[i * m] + h[i * m + 1] - h[i * m + m - 1];
 				model.add(e1 >= 0);
 				e1.clear();
-				e1 += h[i] - h[i + m - 2] - h[i + m - 1];
+				e1 += h[i * m] - h[i * m + m - 2] - h[i * m + m - 1];
 				model.add(e1 <= 0);
 				e1.clear();
-				e1 += h[i] - h[i + m - 2] - h[i + m - 1];
+				e1 += h[i * m] - h[i * m + m - 2] - h[i * m + m - 1];
 				model.add(e1 >= -1);
 			}
 
@@ -732,7 +730,7 @@ int main() {
 		env.end();
 	}
 
-	if (doPhaseTwo || !doPhaseOne) {
+	if (doPhaseTwo || !doPhaseOne || failedHeuristics) {
 		// Extends the plan to a full DRR tournament
 		for (int k = 0; k < n; ++k) {
 			for (int i = 0; i < m; i++) {
@@ -745,7 +743,7 @@ int main() {
 		}
 	}
 
-	cout << "\nM2_2 post phase 2:";
+	std::cout << "\nDone!\n\nM2_2 post phase 2:";
 	printMat(M2_2, n, 2 * m);
 	auto postPhaseTwo = chrono::steady_clock::now();
 	/*****************************************************************************************************************************/

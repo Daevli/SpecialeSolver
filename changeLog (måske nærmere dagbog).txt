@@ -469,6 +469,10 @@ v. 1.2.3 --- (20-07-2020)
  = Hjælpemetoder/refaktorering =
   - Har tilføjet en boolean til isFeasible(), som tjekker, om top-kamp/-hold constraints er overholdt.
 
+v. 1.2.4 --- (27-07-2020)
+ = Fase 2 = 
+  - Hvis begge heuristics fejlede, løste den ikke Cplex ordenligt. Det er nu fixed. Problemet var, at den ikke udvidede planen ordenligt.
+
 
 
 
